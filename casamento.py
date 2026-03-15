@@ -1,5 +1,4 @@
 # app.py
-
 import streamlit as st
 import pandas as pd
 import os
@@ -105,6 +104,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
+
 # -------------------------------
 # Cabeçalho (fixo)
 # -------------------------------
@@ -172,87 +173,127 @@ with st.sidebar:
     st.components.v1.html(sc_embed, height=250)
 
 # -------------------------------
-# Página: Confirmação de Presença (RSVP)
+# Página: Home Page
 # -------------------------------
+
 if pagina == "Home Page":
     
     st.write(MENSAGEM_BOAS_VINDAS)
-    
 
+# -------------------------------
+# Página: Confirmação de Presença (RSVP)
+# -------------------------------
 elif pagina == "🎟️ Confirmação de Presença":
-        # Estado para campos dinâmicos de acompanhantes
+    import json
+
+    st.header("🎟️ Confirmação de Presença")
+    st.write("Por favor, preencha suas informações para confirmar ou justificar sua ausência.")
+
+    # ── 1) Estado ──────────────────────────────────────────────────────────────
     if "acomp_count" not in st.session_state:
         st.session_state.acomp_count = 0
-    st.header("Confirmação de Presença")
-    st.write("Por favor, preencha suas informações para confirmar ou justificar sua ausência.")
+    if "rsvp_msg" not in st.session_state:
+        st.session_state.rsvp_msg = None
+
+    # ── Exibe mensagem de sucesso se existir (após rerun) ──────────────────────
+    if st.session_state.rsvp_msg:
+        st.success(st.session_state.rsvp_msg)
+        st.session_state.rsvp_msg = None  # limpa após exibir
+
+    # ── 2) Botões fora do formulário ───────────────────────────────────────────
     st.subheader("Acompanhantes")
     col_add, col_remove = st.columns(2)
+    add_clicked    = col_add.button("Adicionar acompanhante +", type="primary")
+    remove_clicked = col_remove.button("Remover último -")
 
+    if add_clicked:
+        st.session_state.acomp_count += 1
+        st.rerun()
+
+    if remove_clicked and st.session_state.acomp_count > 0:
+        st.session_state.acomp_count -= 1
+        st.rerun()
+
+    if st.session_state.acomp_count > 0:
+        st.caption(f"Acompanhantes adicionados: {st.session_state.acomp_count}")
+
+    # ── 3) Formulário ──────────────────────────────────────────────────────────
     with st.form("rsvp_form", clear_on_submit=True):
-        nome = st.text_input("Nome completo*", placeholder="Seu nome", max_chars=80)
-        email = st.text_input("E-mail", placeholder="seu@email.com", max_chars=120)
-        telefone = st.text_input("Telefone", placeholder="(xx) xxxxx-xxxx", max_chars=20)
-        presença = st.radio("Você vai ao casamento?", ["Sim, confirmo presença", "Infelizmente não poderei ir"])
+        nome     = st.text_input("Nome completo*",  placeholder="Seu nome",        max_chars=80)
+        email    = st.text_input("E-mail",           placeholder="seu@email.com",   max_chars=120)
+        telefone = st.text_input("Telefone",         placeholder="(xx) xxxxx-xxxx", max_chars=20)
+        presença = st.radio(
+            "Você vai ao casamento?",
+            ["Sim, confirmo presença", "Infelizmente não poderei ir"]
+        )
         msg = st.text_area("Mensagem aos noivos (opcional)", placeholder="Deixe um recado carinhoso")
-        with col_add:
-        if st.button("Adicionar acompanhante +"):
-            st.session_state.acomp_count += 1
-            st.experimental_rerun()
-        with col_remove:
-            if st.button("Remover último -"):
-                if st.session_state.acomp_count > 0:
-                    st.session_state.acomp_count -= 1
-                    st.experimental_rerun()
-    st.caption(f"Campos de acompanhantes: {st.session_state.acomp_count}")
+
         # Campos dinâmicos de acompanhantes
         acompanhantes = []
+        if st.session_state.acomp_count > 0:
+            st.markdown("**Dados dos acompanhantes**")
         for i in range(st.session_state.acomp_count):
-            ac_nome = st.text_input(f"Nome do acompanhante {i+1}", key=f"acomp_nome_{i}", max_chars=80)
-            ac_obs = st.text_input(f"Obs. do acompanhante {i+1} (opcional)", key=f"acomp_obs_{i}", max_chars=120)
+            c1, c2 = st.columns([3, 2])
+            ac_nome = c1.text_input(
+                f"Nome do acompanhante {i+1}",
+                key=f"acomp_nome_{i}",
+                max_chars=80
+            )
+            ac_obs = c2.text_input(
+                f"Obs./Parentesco {i+1} (opcional)",
+                key=f"acomp_obs_{i}",
+                max_chars=80
+            )
             acompanhantes.append({"nome": ac_nome.strip(), "obs": ac_obs.strip()})
 
-    enviar = st.form_submit_button("Enviar confirmação")
+        enviar = st.form_submit_button("Enviar confirmação")
 
-if enviar:
-    if not nome.strip():
-        st.error("Por favor, informe seu nome.")
-    else:
-        # Conta apenas acompanhantes com nome preenchido
-        acompanhantes_validos = [a for a in acompanhantes if a["nome"]]
-        qtd_pessoas = 1 + len(acompanhantes_validos)
-
-        import json
-        row = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "nome": nome.strip(),
-            "email": email.strip(),
-            "telefone": telefone.strip(),
-            "presenca": "Sim" if presença.startswith("Sim") else "Não",
-            "qtd_pessoas": qtd_pessoas,
-            "mensagem": msg.strip(),
-            "acompanhantes": json.dumps(acompanhantes_validos, ensure_ascii=False),
-        }
-        try:
-            append_row(RSVP_CSV, row)
-            st.success("Confirmação registrada com sucesso! Obrigado.")
-        except Exception as e:
-            st.error(f"Não foi possível salvar sua confirmação. Erro: {e}")
+    # ── 4) Processamento ───────────────────────────────────────────────────────
     if enviar:
         if not nome.strip():
             st.error("Por favor, informe seu nome.")
         else:
+            acompanhantes_validos = [a for a in acompanhantes if a["nome"]]
+            qtd_pessoas = 1 + len(acompanhantes_validos)
+
             row = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "nome": nome.strip(),
-                "email": email.strip(),
-                "telefone": telefone.strip(),
-                "presenca": "Sim" if presença.startswith("Sim") else "Não",
-                "qtd_pessoas": int(qtde),
-                "mensagem": msg.strip(),
+                "timestamp":     datetime.utcnow().isoformat(),
+                "nome":          nome.strip(),
+                "email":         email.strip(),
+                "telefone":      telefone.strip(),
+                "presenca":      "Sim" if presença.startswith("Sim") else "Não",
+                "qtd_pessoas":   qtd_pessoas,
+                "mensagem":      msg.strip(),
+                "acompanhantes": json.dumps(acompanhantes_validos, ensure_ascii=False),
             }
             try:
                 append_row(RSVP_CSV, row)
-                st.success("Confirmação registrada com sucesso! Obrigado.")
+
+                # Monta mensagem e guarda no session_state ANTES do rerun
+                if len(acompanhantes_validos) == 0:
+                    st.session_state.rsvp_msg = (
+                        f"✅ Confirmação registrada!\n\n"
+                        f"👤 Titular: **{nome.strip()}**\n\n"
+                        f"🎉 Total confirmado: **1 pessoa**"
+                    )
+                else:
+                    nomes_acomp = ", ".join([a["nome"] for a in acompanhantes_validos])
+                    st.session_state.rsvp_msg = (
+                        f"✅ Confirmação registrada com sucesso!\n\n"
+                        f"👤 Titular: **{nome.strip()}**\n\n"
+                        f"👥 Acompanhantes ({len(acompanhantes_validos)}): {nomes_acomp}\n\n"
+                        f"🎉 Total de pessoas confirmadas: **{qtd_pessoas}**"
+                    )
+
+                # Limpa campos dinâmicos
+                for i in range(st.session_state.acomp_count):
+                    st.session_state.pop(f"acomp_nome_{i}", None)
+                    st.session_state.pop(f"acomp_obs_{i}", None)
+                st.session_state.acomp_count = 0
+
+                # Rerun APÓS guardar a mensagem
+                st.rerun()
+
             except Exception as e:
                 st.error(f"Não foi possível salvar sua confirmação. Erro: {e}")
 
