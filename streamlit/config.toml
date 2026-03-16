@@ -1,0 +1,22 @@
+[server]
+headless = true
+port = 8501
+
+[browser]
+gatherUsageStats = false
+```
+
+Crie a pasta `.streamlit` e o arquivo `config.toml` dentro dela, depois faça commit e push. Isso resolve vários casos de spinning infinito no Cloud.
+
+A estrutura ficaria assim:
+```
+casamento/
+├── .streamlit/
+│   └── config.toml
+├── data/
+│   └── .gitkeep
+├── photos/
+│   └── .gitkeep
+├── casamento.py
+├── requirements.txt
+└── README.md
