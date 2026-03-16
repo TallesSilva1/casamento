@@ -1,11 +1,10 @@
-# casamento.py
 import streamlit as st
 import pandas as pd
-import os
-from pathlib import Path
-from datetime import datetime
+import json
 import urllib.parse
-import json  # ✅ CORREÇÃO 1: movido para o topo (estava sendo importado dentro de elif)
+import os
+from datetime import datetime
+from supabase import create_client, Client, ClientOptions
 
 # -------------------------------
 # Configurações básicas
@@ -17,9 +16,9 @@ MENSAGEM_BOAS_VINDAS = """Sejam bem vindos ao nosso site!
 Estamos muito felizes em ter vocês aqui. Criamos este cantinho com carinho para compartilhar um pouco da nossa história e reunir todas as informações do nosso grande dia.
 
 Esperamos que este site ajude vocês a se preparar para celebrar, rir, dançar e viver esse momento especial com a gente.
-A presença de vocês já torna tudo ainda mais bonito, mal podemos esperar por esse dia! 
+A presença de vocês já torna tudo ainda mais bonito, mal podemos esperar por esse dia!
 
-Com carinho, 
+Com carinho,
 
 Ana Paula e Talles"""
 CHAVE_PIX = "casamento@exemplo.com"
@@ -28,18 +27,6 @@ ENDERECO_CERIMONIA = "Paróquia São Cristovão, R. Padre Américo Ceppi, 190, C
 HORARIO_CERIMONIA = "16:00"
 ENDERECO_FESTA = "Espaço Parnassus, R. do Prata, 1703 - Chacaras Bonanza"
 HORARIO_FESTA = "19:00"
-
-# -------------------------------
-# Paths de armazenamento local
-# -------------------------------
-DATA_DIR = Path("data")
-PHOTOS_DIR = Path("photos")
-RSVP_CSV = DATA_DIR / "rsvp.csv"
-GIFTS_CSV = DATA_DIR / "gifts.csv"
-
-# ✅ CORREÇÃO 2: exist_ok=True garante que não quebra se já existir
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
 
 # -------------------------------
 # Configuração da página
@@ -51,26 +38,65 @@ st.set_page_config(
 )
 
 # -------------------------------
+# Conexão Supabase
+# -------------------------------
+@st.cache_resource
+def get_supabase() -> Client:
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    # Desativa verificação SSL em ambiente local (rede corporativa com proxy)
+    if os.getenv("STREAMLIT_ENV") != "cloud":
+        import httpx
+        options = ClientOptions(httpx_client=httpx.Client(verify=False))
+        return create_client(url, key, options)
+    return create_client(url, key)
+
+supabase = get_supabase()
+
+# -------------------------------
+# Funções Supabase
+# -------------------------------
+def salvar_rsvp(row: dict):
+    supabase.table("rsvp").insert(row).execute()
+
+def carregar_rsvp() -> pd.DataFrame:
+    res = supabase.table("rsvp").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(res.data) if res.data else pd.DataFrame(
+        columns=["timestamp", "nome", "email", "telefone", "presenca", "qtd_pessoas", "mensagem", "acompanhantes"]
+    )
+
+def salvar_gift(row: dict):
+    supabase.table("gifts").insert(row).execute()
+
+def carregar_gifts() -> pd.DataFrame:
+    res = supabase.table("gifts").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(res.data) if res.data else pd.DataFrame(
+        columns=["timestamp", "nome", "presente", "link", "mensagem"]
+    )
+
+def salvar_foto(nome_autor: str, filename: str, dados: bytes):
+    """Faz upload da foto no Supabase Storage e registra na tabela photos."""
+    bucket = "photos"
+    path = f"{datetime.utcnow().strftime('%Y%m%d-%H%M%S-%f')}-{filename}"
+    supabase.storage.from_(bucket).upload(path, dados, {"content-type": "image/jpeg"})
+    url = supabase.storage.from_(bucket).get_public_url(path)
+    supabase.table("photos").insert({
+        "timestamp": datetime.utcnow().isoformat(),
+        "autor": nome_autor,
+        "url": url,
+        "filename": path,
+    }).execute()
+    return url
+
+def carregar_fotos() -> pd.DataFrame:
+    res = supabase.table("photos").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(res.data) if res.data else pd.DataFrame(
+        columns=["timestamp", "autor", "url", "filename"]
+    )
+
+# -------------------------------
 # Funções utilitárias
 # -------------------------------
-def load_csv(path: Path, columns: list) -> pd.DataFrame:
-    if path.exists():
-        try:
-            df = pd.read_csv(path)
-            for c in columns:
-                if c not in df.columns:
-                    df[c] = None
-            return df
-        except Exception:
-            return pd.DataFrame(columns=columns)
-    else:
-        return pd.DataFrame(columns=columns)
-
-def append_row(path: Path, row_dict: dict):
-    df = load_csv(path, list(row_dict.keys()))
-    df = pd.concat([df, pd.DataFrame([row_dict])], ignore_index=True)
-    df.to_csv(path, index=False)
-
 def slugify(text: str) -> str:
     t = "".join(ch if ch.isalnum() else "-" for ch in text.lower())
     t = "-".join(filter(None, t.split("-")))
@@ -83,19 +109,8 @@ def human_time(ts: str) -> str:
     except Exception:
         return ts
 
-def list_images(directory: Path) -> list:
-    exts = {".png", ".jpg", ".jpeg", ".webp"}
-    # ✅ CORREÇÃO 3: verifica se o diretório existe antes de iterar
-    if not directory.exists():
-        return []
-    files = [p for p in directory.iterdir() if p.suffix.lower() in exts]
-    files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    return files
-
 # -------------------------------
 # Plano de fundo
-# ✅ CORREÇÃO 4: URL do SharePoint não funciona como imagem pública
-# Trocado por URL pública do Unsplash (substitua pela sua imagem hospedada publicamente)
 # -------------------------------
 st.markdown("""
     <style>
@@ -141,7 +156,7 @@ with st.sidebar:
     st.subheader("Música ambiente")
     st.components.v1.html("""
     <iframe id="sc-player" width="250" height="150" scrolling="no" frameborder="no" allow="autoplay"
-      src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/150679477&color=%23ff5500&auto_play=true&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false">
+      src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/150679477&color=%23ff5500&auto_play=false&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false">
     </iframe>
     <script src="https://w.soundcloud.com/player/api.js"></script>
     <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
@@ -155,7 +170,6 @@ with st.sidebar:
       const unmuteBtn = document.getElementById('unmute');
       widget.bind(SC.Widget.Events.READY, function() {
         widget.setVolume(0);
-        widget.play();
         status.textContent = 'Clique em "Ativar som"';
       });
       unmuteBtn.addEventListener('click', function() {
@@ -246,7 +260,7 @@ elif pagina == "🎟️ Confirmação de Presença":
                 "acompanhantes": json.dumps(acompanhantes_validos, ensure_ascii=False),
             }
             try:
-                append_row(RSVP_CSV, row)
+                salvar_rsvp(row)
                 if len(acompanhantes_validos) == 0:
                     st.session_state.rsvp_msg = (
                         f"✅ Confirmação registrada!\n\n"
@@ -320,13 +334,13 @@ elif pagina == "🎁 Lista de Presentes":
                 "mensagem":  msg_g.strip(),
             }
             try:
-                append_row(GIFTS_CSV, row)
+                salvar_gift(row)
                 st.success("✅ Intenção registrada. Obrigado pelo carinho!")
             except Exception as e:
                 st.error(f"Não foi possível salvar sua intenção de presente. Erro: {e}")
 
     with st.expander("Ver intenções registradas"):
-        gifts_df = load_csv(GIFTS_CSV, ["timestamp", "nome", "presente", "link", "mensagem"])
+        gifts_df = carregar_gifts()
         if len(gifts_df) == 0:
             st.info("Ainda não há intenções registradas.")
         else:
@@ -386,39 +400,34 @@ else:
             saved = 0
             for f in uploader:
                 try:
-                    ext      = Path(f.name).suffix.lower()
-                    base     = slugify(Path(f.name).stem)
-                    ts       = datetime.utcnow().strftime("%Y%m%d-%H%M%S-%f")
-                    filename = f"{ts}-{slugify(nome_autor)}-{base}{ext}"
-                    out_path = PHOTOS_DIR / filename
-                    with open(out_path, "wb") as wf:
-                        wf.write(f.getbuffer())
+                    dados = f.getbuffer().tobytes()
+                    salvar_foto(nome_autor.strip(), slugify(f.name), dados)
                     saved += 1
                 except Exception as e:
                     st.error(f"Falha ao salvar {f.name}: {e}")
             if saved > 0:
                 st.success(f"✅ {saved} foto(s) enviada(s) com sucesso!")
-                st.rerun()  # ✅ CORREÇÃO 5: era st.experimental_rerun()
+                st.rerun()
 
     st.divider()
 
     st.subheader("Galeria")
-    fotos = list_images(PHOTOS_DIR)
-    if len(fotos) == 0:
+    fotos_df = carregar_fotos()
+
+    if len(fotos_df) == 0:
         st.info("Ainda não há fotos. Seja o primeiro a compartilhar!")
     else:
         page_size = st.slider("Fotos por página", 4, 20, 8, 2)
-        total     = len(fotos)
-        # ✅ CORREÇÃO 6: proteção contra divisão por zero
+        total     = len(fotos_df)
         max_page  = max(1, (total - 1) // page_size + 1)
         page      = st.number_input("Página", min_value=1, max_value=max_page, value=1)
         start     = (page - 1) * page_size
         end       = start + page_size
-        show      = fotos[start:end]
+        show      = fotos_df.iloc[start:end]
 
-        for p in show:
-            st.image(str(p), use_column_width=True)
-            st.caption(p.name)
+        for _, row in show.iterrows():
+            st.image(row["url"], use_container_width=True)
+            st.caption(f"📷 {row['autor']} — {human_time(row['timestamp'])}")
             st.divider()
 
         st.write(f"Total de fotos: {total}")
