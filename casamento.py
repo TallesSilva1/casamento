@@ -118,7 +118,7 @@ st.markdown("""
     <style>
         .stApp {
             background: linear-gradient(rgba(255,250,188,0.15), rgba(255,250,188,0.05)),
-                        url('https://raw.githubusercontent.com/TallesSilva1/casamento/refs/heads/main/Frame%202.png')
+                        url('https://images.unsplash.com/photo-1519741497674-611f06e8aaaf?q=80&w=1600&auto=format&fit=crop')
                         no-repeat center center fixed;
             background-size: cover;
         }
@@ -405,7 +405,8 @@ else:
                     ext = f.name.rsplit(".", 1)[-1].lower()
                     content_type = "image/png" if ext == "png" else "image/jpeg"
                     dados = f.getbuffer().tobytes()
-                    salvar_foto(nome_autor.strip(), slugify(f.name) + f".{ext}", dados, content_type)
+                    base = slugify(f.name.rsplit(".", 1)[0])
+                    salvar_foto(nome_autor.strip(), f"{base}.{ext}", dados, content_type)
                     saved += 1
                 except Exception as e:
                     st.error(f"Falha ao salvar {f.name}: {e}")
