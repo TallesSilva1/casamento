@@ -118,7 +118,7 @@ st.markdown("""
     <style>
         .stApp {
             background: linear-gradient(rgba(255,250,188,0.15), rgba(255,250,188,0.05)),
-                        url('https://images.unsplash.com/photo-1519741497674-611f06e8aaaf?q=80&w=1600&auto=format&fit=crop')
+                        url('https://github.com/TallesSilva1/casamento/blob/65cd2310855b2d875cea709a69225cd1319e1777/Frame%202.png?raw=true')
                         no-repeat center center fixed;
             background-size: cover;
         }
