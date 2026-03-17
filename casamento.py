@@ -5,6 +5,7 @@ import urllib.parse
 import os
 from datetime import datetime
 from supabase import create_client, Client, ClientOptions
+import streamlit.components.v1 as components
 
 # -------------------------------
 # Configurações básicas
@@ -30,12 +31,19 @@ HORARIO_FESTA = "19:00"
 
 # -------------------------------
 # Configuração da página
+# — DEVE ser o primeiro comando st.*
 # -------------------------------
 st.set_page_config(
     page_title=f"{NOME_DOS_NOIVOS}",
     page_icon="💍",
     layout="centered",
 )
+
+# ================================================================
+# CONTROLE DA ANIMAÇÃO
+# ================================================================
+if "invitation_opened" not in st.session_state:
+    st.session_state.invitation_opened = False
 
 # -------------------------------
 # Conexão Supabase
@@ -44,7 +52,6 @@ st.set_page_config(
 def get_supabase() -> Client:
     url = st.secrets["supabase"]["url"]
     key = st.secrets["supabase"]["key"]
-    # Desativa verificação SSL em ambiente local (rede corporativa com proxy)
     if os.getenv("STREAMLIT_ENV") != "cloud":
         import httpx
         options = ClientOptions(httpx_client=httpx.Client(verify=False))
@@ -75,11 +82,9 @@ def carregar_gifts() -> pd.DataFrame:
     )
 
 def salvar_foto(nome_autor: str, filename: str, dados: bytes, content_type: str = "image/jpeg"):
-    """Faz upload da foto no Supabase Storage e registra na tabela photos."""
     bucket = "photos"
     path = f"{datetime.utcnow().strftime('%Y%m%d-%H%M%S-%f')}-{filename}"
     supabase.storage.from_(bucket).upload(path, dados, {"content-type": content_type})
-    # Monta URL pública manualmente para garantir formato correto
     supabase_url = st.secrets["supabase"]["url"].rstrip("/")
     url = f"{supabase_url}/storage/v1/object/public/{bucket}/{path}"
     supabase.table("photos").insert({
@@ -110,6 +115,69 @@ def human_time(ts: str) -> str:
         return dt.strftime("%d/%m/%Y %H:%M")
     except Exception:
         return ts
+
+
+# ================================================================
+# HOMEPAGE — CARTÃO ANIMADO
+#
+# Lê o index.html da mesma pasta e injeta via st.markdown.
+# Mesmo domínio → JS tem acesso direto ao DOM do Streamlit.
+#
+# Fluxo:
+#   Usuário clica no cartão → animação CSS 3D abre
+#   → botão "Entrar no Site" → entrarNoSite() →
+#   → fade-out → clica no st.button oculto "___ENTRAR___" →
+#   → session_state.invitation_opened = True → st.rerun()
+# ================================================================
+if not st.session_state.invitation_opened:
+
+    import pathlib
+
+    # Detecta retorno com ?entrou=1 navegado pelo JS do iframe
+    if st.query_params.get("entrou") == "1":
+        st.session_state.invitation_opened = True
+        st.query_params.clear()
+        st.rerun()
+
+    # Lê o index.html e anexa script que sobreescreve entrarNoSite()
+    # para navegar a janela pai com ?entrou=1 (funciona pois é mesmo site)
+    _html = (pathlib.Path(__file__).parent / "index.html").read_text(encoding="utf-8")
+    _trigger = (
+        "<script>(function(){"
+        "window.entrarNoSite=function(){"
+        "var w=document.getElementById('homepage-wrap');"
+        "if(w){w.style.opacity='0';w.style.pointerEvents='none';}"
+        "setTimeout(function(){"
+        "var b=window.parent.location.href.split('?')[0];"
+        "window.parent.location.href=b+'?entrou=1';"
+        "},820);};"
+        "})();</script>"
+    )
+    _html_final = _html + _trigger
+
+    st.markdown(
+        """<style>
+        header[data-testid="stHeader"],
+        section[data-testid="stSidebar"],
+        #MainMenu, footer { display:none !important; }
+        .block-container  { padding:0 !important; max-width:100% !important; }
+        iframe[title="st.components.v1.html"] {
+            position:fixed !important; inset:0 !important;
+            width:100vw !important; height:100vh !important;
+            border:none !important; z-index:9999 !important;
+        }
+        </style>""",
+        unsafe_allow_html=True
+    )
+
+    components.html(_html_final, height=800, scrolling=False)
+    st.stop()
+
+
+# ================================================================
+# CONTEÚDO NORMAL DO SITE
+# (só chega aqui quando st.session_state.invitation_opened == True)
+# ================================================================
 
 # -------------------------------
 # Plano de fundo
