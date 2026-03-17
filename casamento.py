@@ -131,65 +131,35 @@ def human_time(ts: str) -> str:
 # ================================================================
 if not st.session_state.invitation_opened:
 
-    # ── CSS: esconde chrome do Streamlit, expande iframe, posiciona botão ──
+    # ── Detecta o sinal via query param (único método confiável no Cloud) ──
+    if st.query_params.get("abriu") == "1":
+        st.session_state.invitation_opened = True
+        st.query_params.clear()
+        st.rerun()
+
+    # ── CSS: esconde chrome e expande iframe ──
     st.markdown("""
     <style>
         header[data-testid="stHeader"],
         section[data-testid="stSidebar"],
         #MainMenu, footer { display:none !important; }
         .block-container  { padding:0 !important; max-width:100% !important; }
-
-        /* Iframe ocupa tela toda */
         iframe[title="st.components.v1.html"] {
             position:fixed !important; inset:0 !important;
             width:100vw !important; height:100vh !important;
             border:none !important; z-index:100 !important;
         }
-
-        /* Botão real do Streamlit — fica SOBRE o iframe, oculto até o cartão abrir */
-        div[data-testid="stButton"] {
-            position:fixed !important;
-            top:50% !important; left:50% !important;
-            transform:translate(-50%, -2%) !important;
-            z-index:9999 !important;
-            opacity:0;
-            transition:opacity .6s ease;
-            pointer-events:none;
-        }
-        div[data-testid="stButton"].visivel {
-            opacity:1 !important;
-            pointer-events:all !important;
-        }
-        div[data-testid="stButton"] button {
-            background:linear-gradient(135deg,#c9a84c,#e8d08a) !important;
-            color:#3a2008 !important;
-            border:1px solid #b89028 !important;
-            font-family:'Cinzel',serif !important;
-            letter-spacing:3px !important;
-            font-size:11px !important;
-            padding:12px 32px !important;
-            border-radius:2px !important;
-            box-shadow:0 4px 20px rgba(0,0,0,.2) !important;
-            text-transform:uppercase !important;
-        }
     </style>
-    <script>
-        // Escuta o sinal do iframe (cartão abriu) e mostra o botão
-        window.addEventListener('message', function(e) {
-            if (e.data && e.data.type === 'cartao_aberto') {
-                var btn = document.querySelector('div[data-testid="stButton"]');
-                if (btn) btn.classList.add('visivel');
-            }
-        });
-    </script>
     """, unsafe_allow_html=True)
 
+    # ── O cartão usa um form com action para navegar com ?abriu=1 ──
+    # Isso funciona porque window.location dentro do iframe aponta
+    # para o próprio Streamlit — não há cross-origin aqui.
     _HOMEPAGE_HTML = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ana Paula &amp; Talles</title>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
@@ -199,7 +169,6 @@ if not st.session_state.invitation_opened:
       background:
         radial-gradient(ellipse at 15% 10%, rgba(220,200,100,.18) 0%, transparent 45%),
         radial-gradient(ellipse at 85% 90%, rgba(200,180,80,.14)  0%, transparent 45%),
-        radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.6)  0%, transparent 70%),
         linear-gradient(160deg, #fdfbec 0%, #f5eecc 50%, #ede4a8 100%);
     }
     .stage { position:relative; z-index:1; width:100%; height:100vh; display:flex; align-items:center; justify-content:center; }
@@ -217,12 +186,14 @@ if not st.session_state.invitation_opened:
     .ci-amp     { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(28px,5vw,50px); color:#c9a84c; line-height:1; margin:-2px 0; }
     .ci-div     { width:44px; height:1px; background:linear-gradient(to right,transparent,#c9a84c,transparent); margin:12px auto; }
     .ci-data    { font-family:'Cinzel',serif; font-size:clamp(7px,1vw,10px); letter-spacing:3px; color:#5a3c18; margin-bottom:3px; }
-    .ci-local   { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(10px,1.5vw,14px); color:#7a5c30; margin-bottom:12px; }
-    .ci-instrucao { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(9px,1.2vw,12px); color:#c9a84c; letter-spacing:1px; animation: blink 2s ease-in-out infinite; }
+    .ci-local   { font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(10px,1.5vw,14px); color:#7a5c30; margin-bottom:18px; }
+    .ci-btn { padding:9px 24px; border:1px solid #c9a84c; font-family:'Cinzel',serif; font-size:clamp(7px,1vw,9px); letter-spacing:3px; color:#7a5810; text-transform:uppercase; background:transparent; cursor:pointer; opacity:0; transform:translateY(8px); transition:opacity .5s ease 1.5s, transform .5s ease 1.5s, background .25s, color .25s; }
+    #card.aberto .ci-btn { opacity:1; transform:translateY(0); }
+    .ci-btn:hover { background:#c9a84c; color:#fff; }
     .panel { position:absolute; top:0; width:50%; height:100%; background:linear-gradient(160deg,#fdfbf0 0%,#f5eecc 55%,#ede4a8 100%); transform-style:preserve-3d; transition:transform 1.4s cubic-bezier(.25,.46,.45,.94); overflow:hidden; }
     .panel::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.55) 0%,transparent 60%); pointer-events:none; }
-    .panel-left  { left:0;  transform-origin:left center;  border-radius:8px 0 0 8px; box-shadow:inset -2px 0 8px rgba(0,0,0,.06); }
-    .panel-right { right:0; transform-origin:right center; border-radius:0 8px 8px 0; box-shadow:inset  2px 0 8px rgba(0,0,0,.06); }
+    .panel-left  { left:0;  transform-origin:left center;  border-radius:8px 0 0 8px; }
+    .panel-right { right:0; transform-origin:right center; border-radius:0 8px 8px 0; }
     .panel-left::before  { content:'';position:absolute;right:0;top:0;width:16px;height:100%;background:linear-gradient(to right,#e8dfa8,#d4c878,#b8a040,#d4c878,#e8dfa8);z-index:2; }
     .panel-right::before { content:'';position:absolute;left:0;top:0;width:16px;height:100%;background:linear-gradient(to left,#e8dfa8,#d4c878,#b8a040,#d4c878,#e8dfa8);z-index:2; }
     #card.aberto .panel-left  { transform:rotateY(-165deg); }
@@ -230,11 +201,11 @@ if not st.session_state.invitation_opened:
     .flores-wrap { position:absolute; left:50%; top:3%; transform:translateX(-50%); width:82%; z-index:10; pointer-events:none; transition:transform .6s cubic-bezier(.34,1.56,.64,1), opacity .45s ease; }
     .flores-wrap img { width:100%; display:block; filter:drop-shadow(0 6px 18px rgba(80,40,0,.25)); }
     #card.aberto .flores-wrap { transform:translateX(-50%) translateY(-20px) scale(1.05); opacity:0; }
-    .seal-wrap { position:absolute; left:50%; top:68%; transform:translate(-50%,-50%); z-index:20; display:flex; align-items:center; justify-content:center; animation:floatPulse 2.8s ease-in-out infinite; transition:opacity .4s ease, transform .4s ease; }
+    .seal-wrap { position:absolute; left:50%; top:68%; transform:translate(-50%,-50%); z-index:20; display:flex; align-items:center; justify-content:center; animation:floatPulse 2.8s ease-in-out infinite; transition:opacity .4s, transform .4s; }
     #card.aberto .seal-wrap { opacity:0; transform:translate(-50%,-60%) scale(.55); pointer-events:none; }
     .seal-disco { width:70px; height:70px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#f0d060 0%,#c9a030 40%,#a07818 70%,#7a5810 100%); box-shadow:0 0 0 3px #b89028,0 0 0 6px rgba(200,160,40,.22),0 8px 28px rgba(0,0,0,.38),inset 0 2px 8px rgba(255,220,100,.5); }
     .seal-svg { position:absolute; width:136px; height:136px; top:50%; left:50%; transform:translate(-50%,-50%); animation:rotateSeal 14s linear infinite; pointer-events:none; }
-    .hint { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-family:'Cormorant Garamond',serif; font-style:italic; font-size:13px; letter-spacing:2px; color:rgba(120,80,20,.65); animation:blink 2.8s ease-in-out infinite; pointer-events:none; white-space:nowrap; z-index:50; transition:opacity .4s ease; }
+    .hint { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); font-family:'Cormorant Garamond',serif; font-style:italic; font-size:13px; letter-spacing:2px; color:rgba(120,80,20,.65); animation:blink 2.8s ease-in-out infinite; pointer-events:none; white-space:nowrap; z-index:50; transition:opacity .4s; }
     .hint.oculto { opacity:0; }
     .petal { position:fixed; border-radius:50% 0 50% 0; pointer-events:none; animation:petalFall linear forwards; }
     @keyframes rotateSeal { from{transform:translate(-50%,-50%) rotate(0deg);}to{transform:translate(-50%,-50%) rotate(360deg);} }
@@ -261,7 +232,9 @@ if not st.session_state.invitation_opened:
       <div class="ci-div"></div>
       <p class="ci-data">15 &middot; AGOSTO &middot; 2026</p>
       <p class="ci-local">Uberlândia &mdash; MG</p>
-      <p class="ci-instrucao" id="instrucao" style="display:none">&#8679; clique no botão acima para entrar</p>
+      <button class="ci-btn" onclick="event.stopPropagation(); entrarNoSite()">
+        &#10022; &nbsp; Entrar no Site &nbsp; &#10022;
+      </button>
     </div>
     <div class="panel panel-left"></div>
     <div class="panel panel-right"></div>
@@ -282,18 +255,24 @@ if not st.session_state.invitation_opened:
 <p class="hint" id="hint">toque no convite para abrir</p>
 <script>
   var aberto = false;
+
   function spawnPetals() {
     var cores = ['#e87030','#f09840','#c9a84c','#e8d08a','#f5f0d0','#a8c860','#fff','#d4c060'];
     for (var i = 0; i < 42; i++) {
       (function(i){ setTimeout(function() {
         var p = document.createElement('div'); p.className = 'petal';
         var s = 5 + Math.random()*12;
-        p.style.cssText='left:'+(20+Math.random()*60)+'vw;top:42vh;width:'+s+'px;height:'+s+'px;background:'+cores[Math.floor(Math.random()*cores.length)]+';animation-duration:'+(1.8+Math.random()*1.8)+'s;transform:translateX('+(Math.random()-.5)*160+'px);';
+        p.style.cssText = 'left:'+(20+Math.random()*60)+'vw;top:42vh;'
+          +'width:'+s+'px;height:'+s+'px;'
+          +'background:'+cores[Math.floor(Math.random()*cores.length)]+';'
+          +'animation-duration:'+(1.8+Math.random()*1.8)+'s;'
+          +'transform:translateX('+(Math.random()-.5)*160+'px);';
         document.body.appendChild(p);
-        setTimeout(function(){ p.remove(); },4000);
+        setTimeout(function(){ p.remove(); }, 4000);
       }, i*48); })(i);
     }
   }
+
   function abrirCartao() {
     if (aberto) return;
     aberto = true;
@@ -301,25 +280,20 @@ if not st.session_state.invitation_opened:
     spawnPetals();
     setTimeout(function() {
       document.getElementById('card').classList.add('aberto');
-      // Após abrir, avisa o Streamlit pai para mostrar o botão real
-      setTimeout(function() {
-        window.parent.postMessage({type:'cartao_aberto'}, '*');
-        var i = document.getElementById('instrucao');
-        if(i) i.style.display='block';
-      }, 1000);
     }, 160);
+  }
+
+  function entrarNoSite() {
+    // Navega o proprio iframe para a URL do Streamlit com ?abriu=1
+    // O Streamlit detecta o param no proximo rerun e abre o site
+    var url = window.location.href.split('?')[0] + '?abriu=1';
+    window.location.href = url;
   }
 </script>
 </body>
 </html>"""
 
     components.html(_HOMEPAGE_HTML, height=800, scrolling=False)
-
-    # Botão real do Streamlit — aparece sobre o iframe após o cartão abrir
-    if st.button("✦  Entrar no Site  ✦", key="__entrar__"):
-        st.session_state.invitation_opened = True
-        st.rerun()
-
     st.stop()
 
 
