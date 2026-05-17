@@ -5,12 +5,105 @@ import urllib.parse
 import os
 from datetime import datetime
 from supabase import create_client, Client, ClientOptions
+import streamlit.components.v1 as components
+
+
+# -------------------------------
+# Configurações básicas
+# -------------------------------
+NOME_DOS_NOIVOS = "Ana Paula & Talles"
+DATA_DO_CASAMENTO = "15 de Agosto de 2026, 16:00"
+MENSAGEM_BOAS_VINDAS = """Sejam bem vindos ao nosso site!
+
+Estamos muito felizes em ter vocês aqui. Criamos este cantinho com carinho para compartilhar um pouco da nossa história e reunir todas as informações do nosso grande dia.
+
+Esperamos que este site ajude vocês a se preparar para celebrar, rir, dançar e viver esse momento especial com a gente.
+A presença de vocês já torna tudo ainda mais bonito, mal podemos esperar por esse dia!
+
+Com carinho,
+
+Ana Paula e Talles"""
+CHAVE_PIX = "casamento@exemplo.com"
+MENSAGEM_PIX = "Se preferir presente em Pix, use a chave acima. Obrigado pelo carinho!"
+ENDERECO_CERIMONIA = "Paróquia São Cristovão, R. Padre Américo Ceppi, 190, Centro, Uberlândia"
+HORARIO_CERIMONIA = "16:00"
+ENDERECO_FESTA = "Espaço Parnassus, R. do Prata, 1703 - Chacaras Bonanza"
+HORARIO_FESTA = "19:00"
 
 st.set_page_config(
     page_title="Ana Paula & Talles",
     page_icon="\U0001f48d",
     layout="centered",
 )
+
+
+# -------------------------------
+# Funções Supabase
+# -------------------------------
+
+@st.cache_resource
+def get_supabase() -> Client:
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    if os.getenv("STREAMLIT_ENV") != "cloud":
+        import httpx
+        options = ClientOptions(httpx_client=httpx.Client(verify=False))
+        return create_client(url, key, options)
+    return create_client(url, key)
+supabase = get_supabase()
+def salvar_rsvp(row: dict):
+    supabase.table("rsvp").insert(row).execute()
+
+def carregar_rsvp() -> pd.DataFrame:
+    res = supabase.table("rsvp").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(res.data) if res.data else pd.DataFrame(
+        columns=["timestamp", "nome", "email", "telefone", "presenca", "qtd_pessoas", "mensagem", "acompanhantes"]
+    )
+
+def salvar_gift(row: dict):
+    supabase.table("gifts").insert(row).execute()
+
+def carregar_gifts() -> pd.DataFrame:
+    res = supabase.table("gifts").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(res.data) if res.data else pd.DataFrame(
+        columns=["timestamp", "nome", "presente", "link", "mensagem"]
+    )
+
+def salvar_foto(nome_autor: str, filename: str, dados: bytes, content_type: str = "image/jpeg"):
+    bucket = "photos"
+    path = f"{datetime.utcnow().strftime('%Y%m%d-%H%M%S-%f')}-{filename}"
+    supabase.storage.from_(bucket).upload(path, dados, {"content-type": content_type})
+    supabase_url = st.secrets["supabase"]["url"].rstrip("/")
+    url = f"{supabase_url}/storage/v1/object/public/{bucket}/{path}"
+    supabase.table("photos").insert({
+        "timestamp": datetime.utcnow().isoformat(),
+        "autor": nome_autor,
+        "url": url,
+        "filename": path,
+    }).execute()
+    return url
+
+def carregar_fotos() -> pd.DataFrame:
+    res = supabase.table("photos").select("*").order("timestamp", desc=True).execute()
+    return pd.DataFrame(res.data) if res.data else pd.DataFrame(
+        columns=["timestamp", "autor", "url", "filename"]
+    )
+
+# -------------------------------
+# Funções utilitárias
+# -------------------------------
+def slugify(text: str) -> str:
+    t = "".join(ch if ch.isalnum() else "-" for ch in text.lower())
+    t = "-".join(filter(None, t.split("-")))
+    return t[:60]
+
+def human_time(ts: str) -> str:
+    try:
+        dt = datetime.fromisoformat(ts)
+        return dt.strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        return ts
+
 
 # -------------------------------
 # Plano de fundo
@@ -33,6 +126,7 @@ st.markdown("""
 # -------------------------------
 # Cabeçalho
 # -------------------------------
+NOME_DOS_NOIVOS = "Ana Paula & Talles"
 st.title(f"{NOME_DOS_NOIVOS}")
 
 # -------------------------------
@@ -42,11 +136,11 @@ st.sidebar.title("Menu")
 pagina = st.sidebar.radio(
     "Navegue pelas seções",
     (
-        "Home Page",
-        "🎟️ Confirmação de Presença",
-        "🎁 Lista de Presentes",
-        "📍 Endereço dos Eventos",
-        "🖼️ Galeria de Fotos",
+        " Pagina Principal",
+        " Confirmação de Presença",
+        " Lista de Presentes",
+        " Endereço dos Eventos",
+        " Galeria de Fotos",
     ),
     index=0,
 )
@@ -89,15 +183,15 @@ with st.sidebar:
 # ================================
 # Página: Home Page
 # ================================
-if pagina == "Home Page":
+if pagina == " Pagina Principal":
     st.write(MENSAGEM_BOAS_VINDAS)
 
 # ================================
 # Página: Confirmação de Presença
 # ================================
-elif pagina == "🎟️ Confirmação de Presença":
+elif pagina == " Confirmação de Presença":
 
-    st.header("🎟️ Confirmação de Presença")
+    st.header(" Confirmação de Presença")
     st.write("Por favor, preencha suas informações para confirmar ou justificar sua ausência.")
 
     if "acomp_count" not in st.session_state:
@@ -189,8 +283,8 @@ elif pagina == "🎟️ Confirmação de Presença":
 # ================================
 # Página: Lista de Presentes
 # ================================
-elif pagina == "🎁 Lista de Presentes":
-    st.header("🎁 Lista de Presentes e Pix")
+elif pagina == " Lista de Presentes":
+    st.header(" Lista de Presentes e Pix")
     st.write("Fique à vontade para escolher um presente. Se preferir, pode usar nossa chave Pix.")
 
     st.subheader("Pix")
@@ -253,8 +347,8 @@ elif pagina == "🎁 Lista de Presentes":
 # ================================
 # Página: Endereço
 # ================================
-elif pagina == "📍 Endereço dos Eventos":
-    st.header("📍 Endereço e Informações")
+elif pagina == " Endereço dos Eventos":
+    st.header(" Endereço e Informações")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -282,7 +376,7 @@ elif pagina == "📍 Endereço dos Eventos":
 # Página: Galeria de Fotos
 # ================================
 else:
-    st.header("🖼️ Galeria de Fotos")
+    st.header(" Galeria de Fotos")
     st.write("Compartilhe suas fotos do casamento e veja as fotos de todos!")
 
     st.subheader("Envie suas fotos")
