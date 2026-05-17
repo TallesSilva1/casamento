@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ana Paula &amp; Talles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Dancing+Script:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --gold:#c9a84c;
+  --gold-light:#e8d08a;
+  --gold-dark:#7a5810;
+  --ink:#3a2008;
+  --parchment:#fdfaf0;
+  --parchment-mid:#f5eecc;
+  --parchment-deep:#ede4a8;
+}
+
+html,body{
+  height:100%;
+  background:var(--parchment);
+  overflow:hidden;
+  font-family:'Cormorant Garamond',serif;
+}
+
+/* ── Fundo aquarela ── */
+.bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(220,200,100,.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 90%, rgba(200,180,80,.14)  0%, transparent 45%),
+    linear-gradient(160deg, #fdfbec 0%, #f5eecc 50%, #ede4a8 100%);
+}
+
+/* ── Topo ── */
+.topo{
+  position:fixed;top:28px;left:50%;transform:translateX(-50%);
+  text-align:center;z-index:10;pointer-events:none;
+  animation:fadeDown .9s ease .2s both;
+}
+.topo-eyebrow{
+  display:block;
+  font-family:'Cinzel',serif;
+  font-size:clamp(8px,1.1vw,10px);
+  letter-spacing:5px;color:var(--gold);
+  text-transform:uppercase;margin-bottom:6px;
+}
+.topo-nomes{
+  display:block;
+  font-family:'Dancing Script',cursive;
+  font-size:clamp(22px,3.5vw,36px);
+  color:var(--ink);
+}
+
+/* ── Stage ── */
+.stage{
+  position:fixed;inset:0;z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  perspective:1400px;
+}
+
+/* ── Cartão ── */
+.card{
+  position:relative;
+  width:clamp(240px,30vw,380px);
+  aspect-ratio:3/4.2;
+  cursor:pointer;
+  transform-style:preserve-3d;
+  filter:drop-shadow(0 20px 55px rgba(80,40,0,.22));
+  animation:fadeUp .9s ease .4s both;
+  transition:filter .3s;
+}
+.card:hover{filter:drop-shadow(0 28px 70px rgba(80,40,0,.30));}
+
+/* Interior (visível após abrir) */
+.interior{
+  position:absolute;inset:0;border-radius:8px;
+  background:linear-gradient(160deg,#fdfbf0 0%,#f8f2d8 55%,#f0e8c0 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:10% 12%;z-index:0;
+  opacity:0;transition:opacity .7s ease .8s;
+}
+.interior::before{content:'';position:absolute;inset:14px;border:1px solid rgba(180,140,40,.3);border-radius:4px;}
+.interior::after {content:'';position:absolute;inset:20px;border:1px solid rgba(180,140,40,.15);border-radius:2px;}
+.card.aberto .interior{opacity:1;}
+
+.ci-eyebrow{font-family:'Cinzel',serif;font-size:clamp(7px,1vw,9px);letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:10px;}
+.ci-nome   {font-family:'Dancing Script',cursive;font-size:clamp(20px,3.8vw,38px);color:var(--ink);line-height:1.1;}
+.ci-amp    {font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(26px,4.8vw,48px);color:var(--gold);line-height:1;margin:-2px 0;}
+.ci-div    {width:40px;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:10px auto;}
+.ci-data   {font-family:'Cinzel',serif;font-size:clamp(7px,1vw,9px);letter-spacing:3px;color:#5a3c18;margin-bottom:3px;}
+.ci-local  {font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(9px,1.4vw,13px);color:#7a5c30;margin-bottom:20px;}
+
+/* Painéis esquerdo e direito */
+.panel{
+  position:absolute;top:0;width:50%;height:100%;
+  background:linear-gradient(160deg,#fdfbf0 0%,#f5eecc 55%,#ede4a8 100%);
+  transform-style:preserve-3d;
+  transition:transform 1.4s cubic-bezier(.25,.46,.45,.94);
+  overflow:hidden;
+}
+.panel::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.55) 0%,transparent 60%);
+  pointer-events:none;
+}
+.esq{left:0;transform-origin:left center;border-radius:8px 0 0 8px;}
+.dir{right:0;transform-origin:right center;border-radius:0 8px 8px 0;}
+.esq::before{content:'';position:absolute;right:0;top:0;width:16px;height:100%;background:linear-gradient(to right,#e8dfa8,#d4c878,#b8a040,#d4c878,#e8dfa8);z-index:2;}
+.dir::before{content:'';position:absolute;left:0;top:0;width:16px;height:100%;background:linear-gradient(to left,#e8dfa8,#d4c878,#b8a040,#d4c878,#e8dfa8);z-index:2;}
+.card.aberto .esq{transform:rotateY(-165deg);}
+.card.aberto .dir{transform:rotateY(165deg);}
+
+/* Flores */
+.flores{
+  position:absolute;left:50%;top:3%;
+  transform:translateX(-50%);width:82%;z-index:10;
+  pointer-events:none;
+  transition:transform .6s cubic-bezier(.34,1.56,.64,1),opacity .45s;
+}
+.flores img{width:100%;display:block;filter:drop-shadow(0 6px 18px rgba(80,40,0,.25));}
+.card.aberto .flores{transform:translateX(-50%) translateY(-20px) scale(1.05);opacity:0;}
+
+/* Lacre */
+.lacre{
+  position:absolute;left:50%;top:68%;
+  transform:translate(-50%,-50%);z-index:20;
+  display:flex;align-items:center;justify-content:center;
+  animation:floatPulse 2.8s ease-in-out infinite;
+  transition:opacity .4s,transform .4s;
+}
+.card.aberto .lacre{opacity:0;transform:translate(-50%,-60%) scale(.55);pointer-events:none;}
+.disco{
+  width:68px;height:68px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#f0d060 0%,#c9a030 40%,#a07818 70%,#7a5810 100%);
+  box-shadow:0 0 0 3px #b89028,0 0 0 6px rgba(200,160,40,.22),0 8px 28px rgba(0,0,0,.38),inset 0 2px 8px rgba(255,220,100,.5);
+}
+.lacre-svg{
+  position:absolute;width:132px;height:132px;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:rotateSeal 14s linear infinite;pointer-events:none;
+}
+
+/* Botão entrar */
+.btn-entrar{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  z-index:100;
+  font-family:'Cinzel',serif;font-size:9px;letter-spacing:4px;
+  text-transform:uppercase;
+  background:transparent;
+  border:1px solid var(--gold);
+  color:var(--gold-dark);
+  padding:12px 36px;
+  border-radius:2px;
+  cursor:pointer;
+  opacity:0;pointer-events:none;
+  transition:opacity .6s ease,background .25s,color .25s;
+  white-space:nowrap;
+}
+.btn-entrar.visivel{opacity:1;pointer-events:all;}
+.btn-entrar:hover{background:var(--gold);color:#fff;}
+
+/* Hint */
+.hint{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%);
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:13px;letter-spacing:2px;color:rgba(120,80,20,.65);
+  animation:blink 2.8s ease-in-out infinite;
+  pointer-events:none;white-space:nowrap;z-index:50;
+  transition:opacity .4s;
+}
+.hint.oculto{opacity:0!important;animation:none!important;}
+
+/* Pétalas */
+.petal{
+  position:fixed;border-radius:50% 0 50% 0;
+  pointer-events:none;
+  animation:petalFall linear forwards;z-index:999;
+}
+
+/* Fade-out ao entrar */
+.fadeout{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--parchment);
+  opacity:0;pointer-events:none;
+  transition:opacity .7s ease;
+}
+.fadeout.ativo{opacity:1;}
+
+/* Animações */
+@keyframes rotateSeal{from{transform:translate(-50%,-50%) rotate(0deg);}to{transform:translate(-50%,-50%) rotate(360deg);}}
+@keyframes floatPulse{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.06);}}
+@keyframes blink{0%,100%{opacity:.4;}50%{opacity:1;}}
+@keyframes petalFall{0%{opacity:.9;transform:translateY(0) rotate(0deg) scale(1);}100%{opacity:0;transform:translateY(72vh) rotate(560deg) scale(.2);}}
+@keyframes fadeDown{from{opacity:0;transform:translateX(-50%) translateY(-12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<div class="topo">
+  <span class="topo-eyebrow">&#10022; &nbsp; Celebração de Amor &nbsp; &#10022;</span>
+  <span class="topo-nomes">Ana Paula &amp; Talles</span>
+</div>
+
+<div class="stage">
+  <div class="card" id="card" onclick="abrir()">
+    <div class="interior">
+      <p class="ci-eyebrow">&#10022; &nbsp; Convidam para o casamento &nbsp; &#10022;</p>
+      <p class="ci-nome">Ana Paula</p>
+      <p class="ci-amp">&amp;</p>
+      <p class="ci-nome">Talles</p>
+      <div class="ci-div"></div>
+      <p class="ci-data">15 &middot; AGOSTO &middot; 2026</p>
+      <p class="ci-local">Uberlândia &mdash; MG</p>
+    </div>
+    <div class="panel esq"></div>
+    <div class="panel dir"></div>
+    <div class="flores">
+      <img src="https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/image%205%20(1).png" alt="Arranjo floral decorativo"/>
+    </div>
+    <div class="lacre">
+      <div class="disco"></div>
+      <svg class="lacre-svg" viewBox="0 0 132 132">
+        <path id="cp" d="M66,66 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0" fill="none"/>
+        <text font-family="Cinzel,serif" font-size="10" fill="#7a5010" letter-spacing="2">
+          <textPath href="#cp" startOffset="5%">• clique para abrir • clique para abrir</textPath>
+        </text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<p class="hint" id="hint">toque no convite para abrir</p>
+
+<button class="btn-entrar" id="btn-entrar" onclick="entrar()">✦&nbsp;&nbsp;Entrar no Site&nbsp;&nbsp;✦</button>
+
+<div class="fadeout" id="fadeout"></div>
+
+<script>
+var aberto = false;
+
+function petals(){
+  var c=['#e87030','#f09840','#c9a84c','#e8d08a','#f5f0d0','#a8c860','#fff','#d4c060'];
+  for(var i=0;i<42;i++){(function(i){
+    setTimeout(function(){
+      var p=document.createElement('div');
+      p.className='petal';
+      var s=5+Math.random()*12;
+      p.style.cssText='left:'+(20+Math.random()*60)+'vw;top:42vh;width:'+s+'px;height:'+s+'px;background:'+c[Math.floor(Math.random()*c.length)]+';animation-duration:'+(1.8+Math.random()*1.8)+'s;transform:translateX('+(Math.random()-.5)*160+'px);';
+      document.body.appendChild(p);
+      setTimeout(function(){p.remove();},4000);
+    },i*48);
+  })(i);}
+}
+
+function abrir(){
+  if(aberto) return;
+  aberto=true;
+  var h=document.getElementById('hint');
+  if(h) h.classList.add('oculto');
+  petals();
+  setTimeout(function(){
+    document.getElementById('card').classList.add('aberto');
+    setTimeout(function(){
+      var btn=document.getElementById('btn-entrar');
+      if(btn) btn.classList.add('visivel');
+    },1600);
+  },160);
+}
+
+function entrar(){
+  var fo=document.getElementById('fadeout');
+  fo.classList.add('ativo');
+  // ── CONFIGURE AQUI O DESTINO ──────────────────────────────────────────────
+  // Opção A – mesma origem (outro arquivo HTML):
+  //   setTimeout(function(){ window.location.href='site.html'; },700);
+  //
+  // Opção B – Streamlit rodando na mesma origem (substitua a porta se necessário):
+  //   setTimeout(function(){ window.location.href='/site'; },700);
+  //
+  // Opção C – URL absoluta:
+  //   setTimeout(function(){ window.location.href='https://seu-site.streamlit.app/site'; },700);
+  //
+  // Descomente e ajuste a linha desejada:
+  setTimeout(function(){ window.location.href='http://localhost:8501/Site'; },700);
+}
+</script>
+</body>
+</html>
