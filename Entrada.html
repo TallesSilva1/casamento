@@ -59,13 +59,13 @@ html,body{
 /* ── Stage ── */
 .stage{
   position:fixed;inset:0;z-index:1;
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:top;justify-content:center;
   perspective:1400px;
 }
 
 /* ── Cartão ── */
 .card{
-  position:relative;
+  position:absolute;
   width:clamp(240px,30vw,380px);
   aspect-ratio:3/4.2;
   cursor:pointer;
@@ -204,10 +204,6 @@ html,body{
 
 <div class="bg"></div>
 
-<div class="topo">
-  <span class="topo-eyebrow">&#10022; &nbsp; Celebração de Amor &nbsp; &#10022;</span>
-  <span class="topo-nomes">Ana Paula &amp; Talles</span>
-</div>
 
 <div class="stage">
   <div class="card" id="card" onclick="abrir()">

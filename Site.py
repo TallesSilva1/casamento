@@ -112,7 +112,7 @@ st.markdown("""
     <style>
         .stApp {
             background: linear-gradient(rgba(255,250,188,0.15), rgba(255,250,188,0.05)),
-                        url('https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/Frame%202%20(4).png')
+                        url('https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/Frame%202%20(5).png')
                         no-repeat center center fixed;
             background-size: cover;
         }
@@ -121,6 +121,41 @@ st.markdown("""
             backdrop-filter: blur(3px);
         }
     </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Dancing+Script:wght@600&display=swap');
+
+/* Todos os textos com contorno dourado */
+h1, h2, h3, h4, h5, h6,
+p, span, label, li, div,
+.stMarkdown, .stText,
+[data-testid="stMarkdownContainer"] * {
+    -webkit-text-stroke: 0.8px #c9a84c;
+    paint-order: stroke fill;
+}
+
+/* Título principal mais destacado */
+h1 {
+    -webkit-text-stroke: 1.3px #c9a84c;
+    color: #3a2008;
+    font-family: 'Dancing Script', cursive !important;
+}
+
+/* Subtítulos */
+h2, h3 {
+    -webkit-text-stroke: 1px #c9a84c;
+    color: #3a2008;
+}
+h1   { font-size: 3rem !important; }   /* título principal */
+h2   { font-size: 3rem !important; }     /* cabeçalhos de seção */
+h3   { font-size: 2rem !important; }   /* subcabeçalhos */
+li { font-size: 1rem !important; }  /* corpo do texto */
+span { font-size: 3rem !important; } /* corpo do texto */
+p { font-size: 1rem !important; }  /* corpo do texto */
+label       { font-size: 2rem !important; }  /* formulários */
+</style>
 """, unsafe_allow_html=True)
 
 # -------------------------------
@@ -151,7 +186,7 @@ pagina = st.sidebar.radio(
 with st.sidebar:
     st.markdown("---")
     st.subheader("Música ambiente")
-    st.components.v1.html("""
+    st.iframe("""
     <iframe id="sc-player" width="250" height="150" scrolling="no" frameborder="no" allow="autoplay"
       src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/150679477&color=%23ff5500&auto_play=false&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false">
     </iframe>
@@ -184,6 +219,15 @@ with st.sidebar:
 # Página: Home Page
 # ================================
 if pagina == " Pagina Principal":
+    st.set_page_config(
+    page_title=f"{NOME_DOS_NOIVOS}",
+    page_icon="💍",
+    layout="centered",
+    )   
+    with open("Entrada.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    components.html(html_content, height=320, scrolling=False)  
     st.write(MENSAGEM_BOAS_VINDAS)
 
 # ================================
@@ -203,6 +247,31 @@ elif pagina == " Confirmação de Presença":
         st.success(st.session_state.rsvp_msg)
         st.session_state.rsvp_msg = None
 
+    
+
+    with st.form("rsvp_form", clear_on_submit=True):
+        nome     = st.text_input("Nome completo*",  placeholder="Seu nome",        max_chars=80)
+        email    = st.text_input("E-mail",           placeholder="seu@email.com",   max_chars=120)
+        telefone = st.text_input("Telefone",         placeholder="(xx) xxxxx-xxxx", max_chars=20)
+        presença = st.radio(
+            "Você vai ao casamento?",
+            ["Sim, confirmo presença", "Infelizmente não poderei ir"]
+        )
+
+
+        msg = st.text_area("Mensagem aos noivos (opcional)", placeholder="Deixe um recado carinhoso")
+
+        acompanhantes = []
+        if st.session_state.acomp_count > 0:
+            st.markdown("**Dados dos acompanhantes**")
+        for i in range(st.session_state.acomp_count):
+            c1, c2 = st.columns([3, 2])
+            ac_nome = c1.text_input(f"Nome do acompanhante {i+1}", key=f"acomp_nome_{i}", max_chars=80)
+            ac_obs  = c2.text_input(f"Obs./Parentesco {i+1} (opcional)", key=f"acomp_obs_{i}", max_chars=80)
+            acompanhantes.append({"nome": ac_nome.strip(), "obs": ac_obs.strip()})
+
+        enviar = st.form_submit_button("Enviar confirmação")
+
     st.subheader("Acompanhantes")
     col_add, col_remove = st.columns(2)
     add_clicked    = col_add.button("Adicionar acompanhante +", type="primary")
@@ -218,27 +287,6 @@ elif pagina == " Confirmação de Presença":
 
     if st.session_state.acomp_count > 0:
         st.caption(f"Acompanhantes adicionados: {st.session_state.acomp_count}")
-
-    with st.form("rsvp_form", clear_on_submit=True):
-        nome     = st.text_input("Nome completo*",  placeholder="Seu nome",        max_chars=80)
-        email    = st.text_input("E-mail",           placeholder="seu@email.com",   max_chars=120)
-        telefone = st.text_input("Telefone",         placeholder="(xx) xxxxx-xxxx", max_chars=20)
-        presença = st.radio(
-            "Você vai ao casamento?",
-            ["Sim, confirmo presença", "Infelizmente não poderei ir"]
-        )
-        msg = st.text_area("Mensagem aos noivos (opcional)", placeholder="Deixe um recado carinhoso")
-
-        acompanhantes = []
-        if st.session_state.acomp_count > 0:
-            st.markdown("**Dados dos acompanhantes**")
-        for i in range(st.session_state.acomp_count):
-            c1, c2 = st.columns([3, 2])
-            ac_nome = c1.text_input(f"Nome do acompanhante {i+1}", key=f"acomp_nome_{i}", max_chars=80)
-            ac_obs  = c2.text_input(f"Obs./Parentesco {i+1} (opcional)", key=f"acomp_obs_{i}", max_chars=80)
-            acompanhantes.append({"nome": ac_nome.strip(), "obs": ac_obs.strip()})
-
-        enviar = st.form_submit_button("Enviar confirmação")
 
     if enviar:
         if not nome.strip():
@@ -378,8 +426,6 @@ elif pagina == " Endereço dos Eventos":
 else:
     st.header(" Galeria de Fotos")
     st.write("Compartilhe suas fotos do casamento e veja as fotos de todos!")
-
-    st.subheader("Envie suas fotos")
     uploader   = st.file_uploader(
         "Selecione suas imagens (PNG, JPG, JPEG)",
         type=["png", "jpg", "jpeg"],
