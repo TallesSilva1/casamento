@@ -169,6 +169,7 @@ st.title(f"{NOME_DOS_NOIVOS}")
 # -------------------------------
 st.sidebar.title("Menu")
 pagina = st.sidebar.radio(
+    "",
     (
         " Pagina Principal",
         " Confirmação de Presença",
