@@ -112,12 +112,12 @@ st.markdown("""
     <style>
         .stApp {
             background: linear-gradient(rgba(255,250,188,0.15), rgba(255,250,188,0.05)),
-                        url('https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/Frame%202.png')
+                        url('https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/Frame%202%20(4).png')
                         no-repeat center center fixed;
             background-size: cover;
         }
         [data-testid="stSidebar"] {
-            background-color: rgba(255,250,188,0.60);
+            background-color: rgba(255,250,188,0.6);
             backdrop-filter: blur(3px);
         }
     </style>
