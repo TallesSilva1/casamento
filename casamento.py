@@ -117,7 +117,7 @@ st.markdown("""
             background-size: cover;
         }
         [data-testid="stSidebar"] {
-            background-color: rgba(255,250,188,0.7;
+            background-color: rgba(30,30,30,0.3);
             backdrop-filter: blur(3px);
         }
     </style>
