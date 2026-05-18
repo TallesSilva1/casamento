@@ -5,8 +5,6 @@ import urllib.parse
 import os
 from datetime import datetime
 from supabase import create_client, Client, ClientOptions
-import streamlit.components.v1 as components
-
 
 # -------------------------------
 # Configurações básicas
@@ -112,7 +110,7 @@ st.markdown("""
     <style>
         .stApp {
             background: linear-gradient(rgba(255,250,188,0.15), rgba(255,250,188,0.05)),
-                        url('https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/Frame%202%20(5).png')
+                        url('https://zamgppdvwnzgptoftgta.supabase.co/storage/v1/object/public/photos/Frame%202%20(1).png')
                         no-repeat center center fixed;
             background-size: cover;
         }
@@ -132,29 +130,30 @@ h1, h2, h3, h4, h5, h6,
 p, span, label, li, div,
 .stMarkdown, .stText,
 [data-testid="stMarkdownContainer"] * {
-    -webkit-text-stroke: 0.8px #c9a84c;
+    -webkit-text-stroke: 2px #daa520   ;
     paint-order: stroke fill;
 }
 
 /* Título principal mais destacado */
 h1 {
-    -webkit-text-stroke: 1.3px #c9a84c;
-    color: #3a2008;
+    -webkit-text-stroke: 1.3px #daa520  ;
+    color: #daa520  ;
     font-family: 'Dancing Script', cursive !important;
 }
 
 /* Subtítulos */
 h2, h3 {
-    -webkit-text-stroke: 1px #c9a84c;
-    color: #3a2008;
+    -webkit-text-stroke: 1px #daa520  ;
+    color: #daa520  ;
 }
 h1   { font-size: 3rem !important; }   /* título principal */
 h2   { font-size: 3rem !important; }     /* cabeçalhos de seção */
 h3   { font-size: 2rem !important; }   /* subcabeçalhos */
-li { font-size: 1rem !important; }  /* corpo do texto */
+li { font-size: 3rem !important; }  /* corpo do texto */
 span { font-size: 3rem !important; } /* corpo do texto */
-p { font-size: 1rem !important; }  /* corpo do texto */
-label       { font-size: 2rem !important; }  /* formulários */
+p { font-size: 1rem !important; color: #F0F0F0 }  /* corpo do texto */
+
+label { font-size: 1rem !important; }  /* formulários */
 </style>
 """, unsafe_allow_html=True)
 
@@ -213,7 +212,7 @@ with st.sidebar:
         status.textContent = 'Erro ao carregar o player';
       });
     </script>
-    """, height=220)
+    """, height=260)
 
 # ================================
 # Página: Home Page
@@ -227,7 +226,7 @@ if pagina == " Pagina Principal":
     with open("Entrada.html", "r", encoding="utf-8") as f:
         html_content = f.read()
 
-    components.html(html_content, height=320, scrolling=False)  
+    st.iframe(html_content, height=340)  
     st.write(MENSAGEM_BOAS_VINDAS)
 
 # ================================
@@ -404,18 +403,16 @@ elif pagina == " Endereço dos Eventos":
         st.write(f"**Local:** {ENDERECO_CERIMONIA}")
         st.write(f"**Horário:** {HORARIO_CERIMONIA}")
         mapa_cerimonia = f"https://www.google.com/maps?q={urllib.parse.quote(ENDERECO_CERIMONIA)}&output=embed"
-        st.components.v1.html(
-            f'<iframe src="{mapa_cerimonia}" width="100%" height="350" style="border:0;" loading="lazy"></iframe>',
-            height=370
+        st.iframe(
+            f'<iframe src="{mapa_cerimonia}" width="100%" height="350" style="border:0;" loading="lazy"></iframe>'
         )
     with col2:
         st.subheader("Recepção")
         st.write(f"**Local:** {ENDERECO_FESTA}")
         st.write(f"**Horário:** {HORARIO_FESTA}")
         mapa_festa = f"https://www.google.com/maps?q={urllib.parse.quote(ENDERECO_FESTA)}&output=embed"
-        st.components.v1.html(
-            f'<iframe src="{mapa_festa}" width="100%" height="350" style="border:0;" loading="lazy"></iframe>',
-            height=370
+        st.iframe(
+            f'<iframe src="{mapa_festa}" width="100%" height="350" style="border:0;" loading="lazy"></iframe>'
         )
 
     st.info("💡 Dica: Use um aplicativo de navegação para ver rotas, horários e trânsito no dia.")
