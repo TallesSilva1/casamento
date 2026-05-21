@@ -36,7 +36,7 @@ st.set_page_config(
 
 
 # -------------------------------
-# Funções Supabase
+# Funções Supabase 
 # -------------------------------
 
 @st.cache_resource
