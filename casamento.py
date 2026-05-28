@@ -415,32 +415,58 @@ elif pagina == " Lista de Presentes":
     st.caption("Clique em um presente para ver o QR Code Pix pronto para pagar.")
 
     presentes = [
-        {"nome": "Caixa de emergências para dias difíceis (doces inclusos)", "preco": "R$ 85", "emoji": "🍫", "img": "https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=400&q=80"},
-        {"nome": "Patrocínio de cafés da manhã preguiçosos de domingo", "preco": "R$ 90", "emoji": "🥞", "img": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400&q=80"},
-        {"nome": "Ajuda para renovar o estoque de vinho da casa", "preco": "R$ 100", "emoji": "🍷", "img": "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=400&q=80"},
-        {"nome": "Fundo para petiscos em noites com amigos", "preco": "R$ 70", "emoji": "🍕", "img": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=400&q=80"},
-        {"nome": "Kit ração e sachê para os pets da casa", "preco": "R$ 65", "emoji": "🐾", "img": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&q=80"},
-        {"nome": "Vale-plantinha para deixar o nosso lar ainda mais bonito", "preco": "R$ 80", "emoji": "🪴", "img": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&q=80"},
-        {"nome": "Ajuda para comprar livros e itens colecionáveis de Senhor dos Anéis para o noivo", "preco": "R$ 180", "emoji": "🧝‍♂️", "img": "https://images.unsplash.com/photo-1622281566373-3b10c6d71b56?w=400&q=80"},
-        {"nome": "Fundo para jantares especiais a dois", "preco": "R$ 250", "emoji": "🍝", "img": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80"},
-        {"nome": "Contribuição para nossa primeira viagem de casados", "preco": "R$ 300", "emoji": "✈️", "img": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80"},
-        {"nome": "Vale-paciência para ouvir a noiva falar do casamento pela 472ª vez", "preco": "R$ 150", "emoji": "👰‍♀️", "img": "https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=400&q=80"},
-        {"nome": "Ajuda para seguirmos firmes da vida fitness", "preco": "R$ 220", "emoji": "🏋️", "img": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=80"},
-        {"nome": "Fundo para construção de um laboratório para a noiva fazer experiências", "preco": "R$ 200", "emoji": "🔬", "img": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&q=80"},
-        {"nome": "Vale-date romântico surpresa", "preco": "R$ 290", "emoji": "🌹", "img": "https://images.unsplash.com/photo-1513279922550-250c2129b13a?w=400&q=80"},
-        {"nome": "Vale-paciência para ouvir o noivo contar curiosidades sobre o Michael Jackson pela 586ª vez", "preco": "R$ 110", "emoji": "🕺", "img": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80"},
-        {"nome": "Fundo oficial para sustentar o plano do noivo de ser um corredor", "preco": "R$ 140", "emoji": "🏃‍♂️", "img": "https://images.unsplash.com/photo-1530143311094-34d807799e8f?w=400&q=80"},
-        {"nome": "Vale automobilístico para aprimorar a moto do noivo", "preco": "R$ 170", "emoji": "🏍️", "img": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=400&q=80"},
-        {"nome": "Contribuição para os noivos viajarem de moto pelo país", "preco": "R$ 160", "emoji": "🛣️", "img": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&q=80"},
-        {"nome": "Fundo para custear as “comprinhas” da shopee da noiva", "preco": "R$ 500", "emoji": "🛍️", "img": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&q=80"},
-        {"nome": "Vale-jantar romântico na lua de mel", "preco": "R$ 350", "emoji": "🥂", "img": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400&q=80"},
-        {"nome": "Ajuda para o noivo montar o setup de trabalho", "preco": "R$ 450", "emoji": "💻", "img": "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=400&q=80"},
-        {"nome": "Patrocínio oficial das nossas pequenas aventuras", "preco": "R$ 400", "emoji": "🏕️", "img": "https://images.unsplash.com/photo-1504280658369-0820e129f10a?w=400&q=80"},
-        {"nome": "Fundo para compra da chácara no meio do mato que o noivo sonha", "preco": "R$ 320", "emoji": "🏡", "img": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80"},
-        {"nome": "Contribuição para momentos especiais em família", "preco": "R$ 480", "emoji": "👨‍👩‍👧‍👦", "img": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&q=80"},
-        {"nome": "Ajuda para realizarmos sonhos juntos", "preco": "R$ 1000", "emoji": "✨", "img": "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=400&q=80"},
-        {"nome": "Fundo “lua de mel inesquecível”", "preco": "R$ 850", "emoji": "🏝️", "img": "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=400&q=80"},
-        {"nome": "Contribuição para o caixa de reserva dos planos futuros", "preco": "R$ 700", "emoji": "📈", "img": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=400&q=80"},
+        {"nome": "Caixa de emergências para dias difíceis (doces inclusos)", "preco": "R$ 85", "emoji": "🍫",
+         "img": "https://images.unsplash.com/photo-1548907040-4baa42d10919?w=600&h=400&fit=crop"},
+        {"nome": "Patrocínio de cafés da manhã preguiçosos de domingo", "preco": "R$ 90", "emoji": "🥞",
+         "img": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&h=400&fit=crop"},
+        {"nome": "Ajuda para renovar o estoque de vinho da casa", "preco": "R$ 100", "emoji": "🍷",
+         "img": "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=400&fit=crop"},
+        {"nome": "Fundo para petiscos em noites com amigos", "preco": "R$ 70", "emoji": "🍕",
+         "img": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=600&h=400&fit=crop"},
+        {"nome": "Kit ração e sachê para os pets da casa", "preco": "R$ 65", "emoji": "🐾",
+         "img": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&h=400&fit=crop"},
+        {"nome": "Vale-plantinha para deixar o nosso lar ainda mais bonito", "preco": "R$ 80", "emoji": "🪴",
+         "img": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=600&h=400&fit=crop"},
+        {"nome": "Ajuda para comprar livros e itens colecionáveis de Senhor dos Anéis para o noivo", "preco": "R$ 180", "emoji": "🧝‍♂️",
+         "img": "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?w=600&h=400&fit=crop"},
+        {"nome": "Fundo para jantares especiais a dois", "preco": "R$ 250", "emoji": "🍝",
+         "img": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop"},
+        {"nome": "Contribuição para nossa primeira viagem de casados", "preco": "R$ 300", "emoji": "✈️",
+         "img": "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=600&h=400&fit=crop"},
+        {"nome": "Vale-paciência para ouvir a noiva falar do casamento pela 472ª vez", "preco": "R$ 150", "emoji": "👰‍♀️",
+         "img": "https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop"},
+        {"nome": "Ajuda para seguirmos firmes da vida fitness", "preco": "R$ 220", "emoji": "🏋️",
+         "img": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=400&fit=crop"},
+        {"nome": "Fundo para construção de um laboratório para a noiva fazer experiências", "preco": "R$ 200", "emoji": "🔬",
+         "img": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&h=400&fit=crop"},
+        {"nome": "Vale-date romântico surpresa", "preco": "R$ 290", "emoji": "🌹",
+         "img": "https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=600&h=400&fit=crop"},
+        {"nome": "Vale-paciência para ouvir o noivo contar curiosidades sobre o Michael Jackson pela 586ª vez", "preco": "R$ 110", "emoji": "🕺",
+         "img": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop"},
+        {"nome": "Fundo oficial para sustentar o plano do noivo de ser um corredor", "preco": "R$ 140", "emoji": "🏃‍♂️",
+         "img": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&h=400&fit=crop"},
+        {"nome": "Vale automobilístico para aprimorar a moto do noivo", "preco": "R$ 170", "emoji": "🏍️",
+         "img": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=600&h=400&fit=crop"},
+        {"nome": "Contribuição para os noivos viajarem de moto pelo país", "preco": "R$ 160", "emoji": "🛣️",
+         "img": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop"},
+        {"nome": "Fundo para custear as \"comprinhas\" da shopee da noiva", "preco": "R$ 500", "emoji": "🛍️",
+         "img": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600&h=400&fit=crop"},
+        {"nome": "Vale-jantar romântico na lua de mel", "preco": "R$ 350", "emoji": "🥂",
+         "img": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=400&fit=crop"},
+        {"nome": "Ajuda para o noivo montar o setup de trabalho", "preco": "R$ 450", "emoji": "💻",
+         "img": "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=600&h=400&fit=crop"},
+        {"nome": "Patrocínio oficial das nossas pequenas aventuras", "preco": "R$ 400", "emoji": "🏕️",
+         "img": "https://images.unsplash.com/photo-1504280658369-0820e129f10a?w=600&h=400&fit=crop"},
+        {"nome": "Fundo para compra da chácara no meio do mato que o noivo sonha", "preco": "R$ 320", "emoji": "🏡",
+         "img": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&h=400&fit=crop"},
+        {"nome": "Contribuição para momentos especiais em família", "preco": "R$ 480", "emoji": "👨‍👩‍👧‍👦",
+         "img": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=600&h=400&fit=crop"},
+        {"nome": "Ajuda para realizarmos sonhos juntos", "preco": "R$ 1000", "emoji": "✨",
+         "img": "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600&h=400&fit=crop"},
+        {"nome": "Fundo \"lua de mel inesquecível\"", "preco": "R$ 850", "emoji": "🏝️",
+         "img": "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=600&h=400&fit=crop"},
+        {"nome": "Contribuição para o caixa de reserva dos planos futuros", "preco": "R$ 700", "emoji": "📈",
+         "img": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&h=400&fit=crop"},
     ]
 
     if "presente_selecionado" not in st.session_state:
@@ -454,20 +480,60 @@ elif pagina == " Lista de Presentes":
         for col, presente in zip(cols, presentes[i:i + COLUNAS]):
             with col:
                 if presente["img"]:
-                    st.image(presente["img"], use_container_width=True)
+                    st.markdown(f"""
+                        <div style="
+                            width: 100%;
+                            padding-bottom: 66.5%;
+                            position: relative;
+                            overflow: hidden;
+                            border-radius: 10px;
+                            margin-bottom: 8px;
+                        ">
+                            <img src="{presente['img']}"
+                                style="
+                                    position: absolute;
+                                    top: 0; left: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    object-fit: cover;
+                                "
+                            />
+                        </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='font-size:52px;text-align:center'>{presente['emoji']}</div>", unsafe_allow_html=True)
-                st.markdown(f"**{presente['nome']}**")
-                st.caption(presente["preco"])
+                    st.markdown(
+                        f"<div style='font-size:52px;text-align:center;'>{presente['emoji']}</div>",
+                        unsafe_allow_html=True
+                    )
+
+                # Bloco de texto com altura fixa — garante que o botão
+                # sempre apareça na mesma linha vertical em cada row
+                st.markdown(f"""
+                    <div style="
+                        height: 110px;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: flex-start;
+                        margin-bottom: 6px;
+                    ">
+                        <p style="font-weight:bold; font-size:0.88rem; margin: 0 0 4px 0; line-height:1.4;">
+                            {presente['nome']}
+                        </p>
+                        <p style="color:#888; font-size:0.82rem; margin:0;">
+                            {presente['preco']}
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
+
                 if st.button("Pagar com Pix 💛", key=f"pix_{i}_{presente['nome'][:10]}", use_container_width=True, type="primary"):
                     st.session_state.presente_selecionado = presente
                     st.session_state.scroll_to_pix = True
                     st.rerun()
-
     st.divider()
     st.markdown("<div id='pagamento_pix'></div>", unsafe_allow_html=True)
 
-        # ── Área de pagamento Pix ──
+    # ── Área de pagamento Pix ──
     st.divider()
     # Âncora para rolagem
     st.markdown("<div id='pagamento_pix'></div>", unsafe_allow_html=True)
@@ -506,40 +572,6 @@ elif pagina == " Lista de Presentes":
                 st.code(payload, language=None)
 
         # Aciona rolagem JS até a âncora
-        if st.session_state.scroll_to_pix:
-            st.session_state.scroll_to_pix = False
-            st.components.v1.html("""
-                <script>
-                    setTimeout(function() {
-                        const doc = window.parent.document;
-                        const el = doc.getElementById('pagamento_pix');
-                        if (el) {
-                            el.scrollIntoView({behavior: 'smooth', block: 'start'});
-                        } else {
-                            window.parent.scrollTo({
-                                top: doc.body.scrollHeight,
-                                behavior: 'smooth'
-                            });
-                        }
-                    }, 200);
-                </script>
-            """, height=0)
-
-            # if payload:
-            #     st.markdown("**Pix Copia e Cola:**")
-            #     st.code(payload, language=None)
-            #     modelo_funcional = "00020126580014BR.GOV.BCB.PIX01369a006f14-6348-4996-97a2-9934e15786045204000053039865802BR5922Talles Silva Rodrigues6009SAO PAULO621405102kNBVR4rOd630441F2"
-            #     if payload == modelo_funcional:
-            #         st.success("✅ Payload IDÊNTICO ao modelo funcional — CRC: " + payload[-4:])
-            #     else:
-            #         st.error("❌ Payload diferente do modelo!")
-            #         for i, (a, b) in enumerate(zip(payload, modelo_funcional)):
-            #             if a != b:
-            #                 st.text(f"Diverge na posição {i}: gerado='{a}' vs modelo='{b}'")
-            #                 st.text(f"...gerado:  ...{payload[max(0,i-10):i+10]}...")
-            #                 st.text(f"...modelo:  ...{modelo_funcional[max(0,i-10):i+10]}...")
-            #                 break
-
         if st.session_state.scroll_to_pix:
             st.session_state.scroll_to_pix = False
             st.components.v1.html("""
