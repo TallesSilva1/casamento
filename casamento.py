@@ -3,9 +3,11 @@ import pandas as pd
 import json
 import urllib.parse
 import os
+import io
+import binascii
 from datetime import datetime
 from supabase import create_client, Client, ClientOptions
-
+import qrcode
 
 # -------------------------------
 # Configurações básicas
@@ -22,12 +24,26 @@ A presença de vocês já torna tudo ainda mais bonito, mal podemos esperar por 
 Com carinho,
 
 Ana Paula e Talles"""
+
+
+# Dados do recebedor (exatamente como cadastrados na chave Pix)
+#CHAVE_PIX = "9a006f14-6348-4996-97a2-9934e1578604"
+#NOME_RECEBEDOR = "Talles Silva Rodrigues"
+#CIDADE_RECEBEDOR = "SAO PAULO"
+#TXID_PIX = "2kNBVR4rOd"   # txid alfanumérico (não use ***)
+
+NOME_RECEBEDOR = "ANA P C PROCOPIO"
+CIDADE_RECEBEDOR = "RIBEIRAO PRET"
 CHAVE_PIX = "anaetalles.15.08@hotmail.com"
+TXID_PIX = "***"
+
 MENSAGEM_PIX = "Se preferir presente em Pix, use a chave acima. Obrigado pelo carinho!"
 ENDERECO_CERIMONIA = "Paróquia São Cristovão, R. Padre Américo Ceppi, 190, Centro, Uberlândia"
 HORARIO_CERIMONIA = "16:00"
 ENDERECO_FESTA = "Espaço Parnassus, R. do Prata, 1703 - Chacaras Bonanza"
 HORARIO_FESTA = "19:00"
+
+
 
 st.set_page_config(
     page_title="Ana Paula & Talles",
@@ -39,7 +55,6 @@ st.set_page_config(
 # -------------------------------
 # Funções Supabase 
 # -------------------------------
-
 @st.cache_resource
 def get_supabase() -> Client:
     url = st.secrets["supabase"]["url"]
@@ -49,6 +64,7 @@ def get_supabase() -> Client:
         options = ClientOptions(httpx_client=httpx.Client(verify=False))
         return create_client(url, key, options)
     return create_client(url, key)
+
 supabase = get_supabase()
 
 def salvar_rsvp(row: dict):
@@ -104,31 +120,96 @@ def human_time(ts: str) -> str:
     except Exception:
         return ts
 
+def parse_preco(preco_str: str) -> float:
+    try:
+        v = preco_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
+        return float(v)
+    except Exception:
+        return 0.0
+
+
 # -------------------------------
-# Função QR Code Pix via pypix
+# Geração do Pix BR Code (EMV)
+# usando CRC16 NATIVO do Python (binascii.crc_hqx)
 # -------------------------------
+def _format_field(field_id: str, value: str) -> str:
+    return f"{field_id}{len(value):02d}{value}"
+
+def _crc16_pix(payload: str) -> str:
+    """CRC16-CCITT-FALSE (poly 0x1021, init 0xFFFF) — nativo do Python."""
+    crc = binascii.crc_hqx(payload.encode("utf-8"), 0xFFFF)
+    return f"{crc:04X}"
+def gerar_payload_pix(chave: str, nome_recebedor: str, cidade: str, txid: str = "***") -> str:
+    """Gera o Pix Copia e Cola (BR Code estático) no padrão EMV do Banco Central."""
+    nome_recebedor = nome_recebedor[:25]
+    cidade = cidade[:15]
+    
+    # # 00 - Payload Format Indicator Talles
+    # payload  = _format_field("00", "01")
+    # # 26 - Merchant Account Info (Pix) — note BR.GOV.BCB.PIX em MAIÚSCULO
+    # mai      = _format_field("00", "BR.GOV.BCB.PIX") + _format_field("01", chave)
+    # payload += _format_field("26", mai)
+    # # 52 - MCC
+    # payload += _format_field("52", "0000")
+    # # 53 - Moeda BRL
+    # payload += _format_field("53", "986")
+    # # 58 - País
+    # payload += _format_field("58", "BR")
+    # # 59 - Nome
+    # payload += _format_field("59", nome_recebedor)
+    # # 60 - Cidade
+    # payload += _format_field("60", cidade)
+    # # 62 - Additional Data (txid)
+    # payload += _format_field("62", _format_field("05", txid))
+    # # 63 - CRC16 (usando binascii.crc_hqx nativo)
+    # payload += "6304"
+
+    # 00 - Payload Format Indicator Ana
+    payload  = _format_field("00", "01")                  # Payload Format Indicator
+    payload += _format_field("01", "11")                  # Point of Initiation = 11
+    
+    mai      = _format_field("00", "br.gov.bcb.pix") + _format_field("01", chave)
+    payload += _format_field("26", mai)                   # Merchant Account Info (Pix)
+    
+    payload += _format_field("52", "0000")                # MCC
+    payload += _format_field("53", "986")                 # Moeda BRL
+    
+    # ---> AQUI ENTRA O VALOR NO PAYLOAD (Campo 54) <---
+    if valor > 0:
+        payload += _format_field("54", f"{valor:.2f}")
+        
+    payload += _format_field("58", "BR")                  # País
+    payload += _format_field("59", nome_recebedor)        # Nome
+    payload += _format_field("60", cidade)                # Cidade
+    payload += _format_field("62", _format_field("05", "***"))  # txid
+    payload += "6304"                                     # CRC field header
+    
+    payload += _crc16_pix(payload)
+    return payload
+
 @st.cache_data
-def gerar_qrcode_pix(chave: str, nome_presente: str = "") -> bytes:
-    import qrcode
-    import io
-    from pypix import Pix
-
-    pix = Pix()
-    pix.set_pixkey(chave)
-    pix.set_merchant_name("Ana Paula e Talles")
-    pix.set_merchant_city("Uberlandia")
-    pix.set_txid("PRESENTE")
-    pix.set_description(nome_presente[:20] if nome_presente else "Presente casamento")
-    payload = pix.get_value()
-
-    img = qrcode.make(payload)
+def gerar_qrcode_pix(chave: str, valor: float) -> tuple:
+    """Retorna (PNG bytes, payload copia-e-cola)."""
+    # Passando o valor para a geração do payload
+    payload = gerar_payload_pix(chave, NOME_RECEBEDOR, CIDADE_RECEBEDOR, valor)
+    
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(payload)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
-    return buf.read()
+    return buf.read(), payload
+
 
 # -------------------------------
-# Plano de fundo
+# Estilos
 # -------------------------------
 st.markdown("""
     <style>
@@ -148,99 +229,36 @@ st.markdown("""
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Dancing+Script:wght@600&display=swap');
-
-h1 {
-    -webkit-text-stroke: 0px #daa520;
-    paint-order: stroke fill;
-    color: #050505;
-    font-family: 'Dancing Script', cursive !important;
-}
-h2, h3 {
-    -webkit-text-stroke: 0px #daa520;
-    paint-order: stroke fill;
-    color: #050505;
-}
-span {
-    -webkit-text-stroke: 0px #daa520;
-    paint-order: stroke fill;
-    color: #050505;
-}
-p, li, label {
-    -webkit-text-stroke: 0px #daa520;
-    paint-order: stroke fill;
-    color: #050505;
-}
-h1   { font-size: 2rem !important; }
-h2   { font-size: 2rem !important; }
-h3   { font-size: 1rem !important; }
-li   { font-size: 1rem !important; }
-p    { font-size: 1rem !important; }
-span { font-size: 3rem !important; }
-label { font-size: 1rem !important; }
+h1 { color:#050505; font-family:'Dancing Script', cursive !important; font-size:2rem !important; }
+h2, h3 { color:#050505; }
+h2 { font-size:2rem !important; } h3 { font-size:1rem !important; }
+p, li, label { color:#050505; font-size:1rem !important; }
+span { color:#050505; font-size:3rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
     <style>
-    div[data-testid="stForm"] div.stFormSubmitButton > button {
-        background-color: #daa520;
-        color: #050505;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 20px;
-    }
-    div[data-testid="stForm"] div.stFormSubmitButton > button:hover {
-        background-color: #c49018;
-        color: #050505;
-        border: none;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-    <style>
-    div[data-testid="stFileUploaderDropzoneInstructions"] {
-        display: none;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-    <style>
-    button[data-testid="stBaseButton-secondary"] {
-        background-color: #daa520 !important;
-        color: #050505 !important;
-        border: none !important;
-    }
-    button[data-testid="stBaseButton-secondary"]:hover {
-        background-color: #c49018 !important;
-        color: #050505 !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-    <style>
+    div[data-testid="stForm"] div.stFormSubmitButton > button,
+    button[data-testid="stBaseButton-secondary"],
     button[data-testid="stBaseLinkButton-secondary"] {
         background-color: #daa520 !important;
         color: #050505 !important;
         border: none !important;
+        border-radius: 8px;
+        padding: 10px 20px;
     }
-    button[data-testid="stBaseLinkButton-secondary"]:hover {
-        background-color: #c49018 !important;
-        color: #050505 !important;
-    }
+    div[data-testid="stFileUploaderDropzoneInstructions"] { display: none; }
     </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------
 # Cabeçalho
 # -------------------------------
-NOME_DOS_NOIVOS = "Ana Paula & Talles"
 st.title(f"{NOME_DOS_NOIVOS}")
 
 # -------------------------------
-# Navegação lateral (sidebar)
+# Sidebar
 # -------------------------------
 st.sidebar.title("Menu")
 pagina = st.sidebar.radio(
@@ -255,9 +273,6 @@ pagina = st.sidebar.radio(
     index=0,
 )
 
-# -------------------------------
-# Música na sidebar
-# -------------------------------
 with st.sidebar:
     st.markdown("---")
     st.subheader("Música ambiente")
@@ -271,8 +286,7 @@ with st.sidebar:
       <span id="status" style="font-size:12px; color:#555;">Clique para ativar</span>
     </div>
     <script>
-      const iframeEl = document.getElementById('sc-player');
-      const widget = SC.Widget(iframeEl);
+      const widget = SC.Widget(document.getElementById('sc-player'));
       const status = document.getElementById('status');
       const unmuteBtn = document.getElementById('unmute');
       widget.bind(SC.Widget.Events.READY, function() {
@@ -284,27 +298,22 @@ with st.sidebar:
         widget.play();
         status.textContent = 'Tocando';
       });
-      widget.bind(SC.Widget.Events.ERROR, function() {
-        status.textContent = 'Erro ao carregar o player';
-      });
     </script>
     """, height=260)
 
 # ================================
-# Página: Home Page
+# Home
 # ================================
 if pagina == " Pagina Principal":
     with open("Entrada.html", "r", encoding="utf-8") as f:
         html_content = f.read()
-
     st.components.v1.html(html_content, height=340)
     st.write(MENSAGEM_BOAS_VINDAS)
 
 # ================================
-# Página: Confirmação de Presença
+# Confirmação de Presença
 # ================================
 elif pagina == " Confirmação de Presença":
-
     st.subheader(" Confirmação de Presença")
     st.write("Por favor, preencha suas informações para confirmar ou justificar sua ausência.")
 
@@ -321,10 +330,8 @@ elif pagina == " Confirmação de Presença":
         nome     = st.text_input("Nome completo*",  placeholder="Seu nome")
         email    = st.text_input("E-mail",           placeholder="seu@email.com")
         telefone = st.text_input("Telefone",         placeholder="(xx) xxxxx-xxxx")
-        presença = st.radio(
-            "Você vai ao casamento?",
-            ["Sim, confirmo presença", "Infelizmente não poderei ir"]
-        )
+        presença = st.radio("Você vai ao casamento?",
+            ["Sim, confirmo presença", "Infelizmente não poderei ir"])
         msg = st.text_area("Mensagem aos noivos (opcional)", placeholder="Deixe um recado carinhoso")
 
         acompanhantes = []
@@ -342,7 +349,6 @@ elif pagina == " Confirmação de Presença":
     col_add, col_remove = st.columns(2)
     add_clicked    = col_add.button("Adicionar acompanhante +", type="primary")
     remove_clicked = col_remove.button("Remover último -", type="primary")
-
     if add_clicked:
         st.session_state.acomp_count += 1
         st.rerun()
@@ -393,7 +399,7 @@ elif pagina == " Confirmação de Presença":
                 st.error(f"Não foi possível salvar sua confirmação. Erro: {e}")
 
 # ================================
-# Página: Lista de Presentes
+# Lista de Presentes
 # ================================
 elif pagina == " Lista de Presentes":
     st.header("Lista de Presentes e Pix")
@@ -403,31 +409,44 @@ elif pagina == " Lista de Presentes":
     st.write(f"Chave Pix: {CHAVE_PIX}")
     st.write(MENSAGEM_PIX)
 
-    payload_pix = f"PIX:{CHAVE_PIX}"
-    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={urllib.parse.quote(payload_pix)}"
-    st.image(qr_url, caption="QR Code Pix", width=200)
-
     st.divider()
 
     st.subheader("Sugestões de Presentes")
     st.caption("Clique em um presente para ver o QR Code Pix pronto para pagar.")
 
-    # ── Para adicionar ou editar presentes, edite apenas esta lista ────────
     presentes = [
-        {"nome": "Par de cobertas para a noiva (Ela sempre acorda com todas as cobertas)", "preco": "R$ 280",  "emoji": "🛏️", "img": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80", "link": "https://exemplo.com/jogo-de-cama"},
-        {"nome": "Panelas Novas para a Noiva cozinhar e o Noivo Lavar",                    "preco": "R$ 450",  "emoji": "🍳", "img": "https://images.unsplash.com/photo-1584990347449-39a3533de02d?w=400&q=80", "link": "https://exemplo.com/panelas"},
-        {"nome": "Lava Louça para lavar a louça nova da opção anterior",                    "preco": "R$ 180",  "emoji": "🥤", "img": "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=400&q=80", "link": "https://exemplo.com/liquidificador"},
-        {"nome": "Máquina de café para acordar a Noiva cedinho",                            "preco": "R$ 650",  "emoji": "☕", "img": "https://images.unsplash.com/photo-1510017803434-a899398421b3?w=400&q=80", "link": "https://exemplo.com/cafeteira"},
-        {"nome": "Jogo de toalhas",                                                         "preco": "R$ 190",  "emoji": "🧺", "img": "https://images.unsplash.com/photo-1600369671854-5b73de9cebe3?w=400&q=80", "link": "https://exemplo.com/toalhas"},
-        {"nome": "Vale viagem",                                                             "preco": "R$ livre","emoji": "✈️", "img": "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&q=80", "link": "https://exemplo.com/vale-viagem"},
-        {"nome": "Aparelho de jantar",                                                      "preco": "R$ 320",  "emoji": "🍽️", "img": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80", "link": "https://exemplo.com/jantar"},
-        {"nome": "Aspirador robô",                                                          "preco": "R$ 900",  "emoji": "🤖", "img": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80", "link": "https://exemplo.com/aspirador"},
+        {"nome": "Caixa de emergências para dias difíceis (doces inclusos)", "preco": "R$ 85", "emoji": "🍫", "img": "https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=400&q=80"},
+        {"nome": "Patrocínio de cafés da manhã preguiçosos de domingo", "preco": "R$ 90", "emoji": "🥞", "img": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=400&q=80"},
+        {"nome": "Ajuda para renovar o estoque de vinho da casa", "preco": "R$ 100", "emoji": "🍷", "img": "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=400&q=80"},
+        {"nome": "Fundo para petiscos em noites com amigos", "preco": "R$ 70", "emoji": "🍕", "img": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=400&q=80"},
+        {"nome": "Kit ração e sachê para os pets da casa", "preco": "R$ 65", "emoji": "🐾", "img": "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&q=80"},
+        {"nome": "Vale-plantinha para deixar o nosso lar ainda mais bonito", "preco": "R$ 80", "emoji": "🪴", "img": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=400&q=80"},
+        {"nome": "Ajuda para comprar livros e itens colecionáveis de Senhor dos Anéis para o noivo", "preco": "R$ 180", "emoji": "🧝‍♂️", "img": "https://images.unsplash.com/photo-1622281566373-3b10c6d71b56?w=400&q=80"},
+        {"nome": "Fundo para jantares especiais a dois", "preco": "R$ 250", "emoji": "🍝", "img": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80"},
+        {"nome": "Contribuição para nossa primeira viagem de casados", "preco": "R$ 300", "emoji": "✈️", "img": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80"},
+        {"nome": "Vale-paciência para ouvir a noiva falar do casamento pela 472ª vez", "preco": "R$ 150", "emoji": "👰‍♀️", "img": "https://images.unsplash.com/photo-1520854221256-17451cc331bf?w=400&q=80"},
+        {"nome": "Ajuda para seguirmos firmes da vida fitness", "preco": "R$ 220", "emoji": "🏋️", "img": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=80"},
+        {"nome": "Fundo para construção de um laboratório para a noiva fazer experiências", "preco": "R$ 200", "emoji": "🔬", "img": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&q=80"},
+        {"nome": "Vale-date romântico surpresa", "preco": "R$ 290", "emoji": "🌹", "img": "https://images.unsplash.com/photo-1513279922550-250c2129b13a?w=400&q=80"},
+        {"nome": "Vale-paciência para ouvir o noivo contar curiosidades sobre o Michael Jackson pela 586ª vez", "preco": "R$ 110", "emoji": "🕺", "img": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&q=80"},
+        {"nome": "Fundo oficial para sustentar o plano do noivo de ser um corredor", "preco": "R$ 140", "emoji": "🏃‍♂️", "img": "https://images.unsplash.com/photo-1530143311094-34d807799e8f?w=400&q=80"},
+        {"nome": "Vale automobilístico para aprimorar a moto do noivo", "preco": "R$ 170", "emoji": "🏍️", "img": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=400&q=80"},
+        {"nome": "Contribuição para os noivos viajarem de moto pelo país", "preco": "R$ 160", "emoji": "🛣️", "img": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&q=80"},
+        {"nome": "Fundo para custear as “comprinhas” da shopee da noiva", "preco": "R$ 500", "emoji": "🛍️", "img": "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&q=80"},
+        {"nome": "Vale-jantar romântico na lua de mel", "preco": "R$ 350", "emoji": "🥂", "img": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400&q=80"},
+        {"nome": "Ajuda para o noivo montar o setup de trabalho", "preco": "R$ 450", "emoji": "💻", "img": "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=400&q=80"},
+        {"nome": "Patrocínio oficial das nossas pequenas aventuras", "preco": "R$ 400", "emoji": "🏕️", "img": "https://images.unsplash.com/photo-1504280658369-0820e129f10a?w=400&q=80"},
+        {"nome": "Fundo para compra da chácara no meio do mato que o noivo sonha", "preco": "R$ 320", "emoji": "🏡", "img": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=80"},
+        {"nome": "Contribuição para momentos especiais em família", "preco": "R$ 480", "emoji": "👨‍👩‍👧‍👦", "img": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&q=80"},
+        {"nome": "Ajuda para realizarmos sonhos juntos", "preco": "R$ 1000", "emoji": "✨", "img": "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=400&q=80"},
+        {"nome": "Fundo “lua de mel inesquecível”", "preco": "R$ 850", "emoji": "🏝️", "img": "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=400&q=80"},
+        {"nome": "Contribuição para o caixa de reserva dos planos futuros", "preco": "R$ 700", "emoji": "📈", "img": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=400&q=80"},
     ]
-    # ──────────────────────────────────────────────────────────────────────
 
-    # Controle do popup via session_state
     if "presente_selecionado" not in st.session_state:
         st.session_state.presente_selecionado = None
+    if "scroll_to_pix" not in st.session_state:
+        st.session_state.scroll_to_pix = False
 
     COLUNAS = 3
     for i in range(0, len(presentes), COLUNAS):
@@ -442,72 +461,112 @@ elif pagina == " Lista de Presentes":
                 st.caption(presente["preco"])
                 if st.button("Pagar com Pix 💛", key=f"pix_{i}_{presente['nome'][:10]}", use_container_width=True, type="primary"):
                     st.session_state.presente_selecionado = presente
+                    st.session_state.scroll_to_pix = True
+                    st.rerun()
 
-    # ── Popup: exibe quando um presente foi selecionado ──────────────────
+    st.divider()
+    st.markdown("<div id='pagamento_pix'></div>", unsafe_allow_html=True)
+
+        # ── Área de pagamento Pix ──
+    st.divider()
+    # Âncora para rolagem
+    st.markdown("<div id='pagamento_pix'></div>", unsafe_allow_html=True)
+
     if st.session_state.presente_selecionado:
         p = st.session_state.presente_selecionado
-        st.divider()
+        
+        # 1. Calculamos o valor AQUI, antes de tudo, para garantir que a variável exista!
+        valor = parse_preco(p['preco'])
+        
         with st.container(border=True):
             col_info, col_qr = st.columns([2, 1])
+            
             with col_info:
-                st.markdown(f"### 💛 Pagar via Pix")
-                st.markdown(f"**Presente escolhido:**")
+                st.markdown("### 💛 Pagar via Pix")
+                st.markdown("**Presente escolhido:**")
                 st.markdown(f"{p['emoji']} {p['nome']}")
                 st.markdown(f"**Valor sugerido:** {p['preco']}")
                 st.markdown(f"**Chave Pix:** `{CHAVE_PIX}`")
-                st.caption("Escaneie o QR Code ao lado ou copie a chave acima no seu banco.")
+                st.caption("Escaneie o QR Code ao lado pelo app do seu banco, ou copie o Pix Copia e Cola abaixo.")
                 if st.button("✕ Fechar", key="fechar_popup"):
                     st.session_state.presente_selecionado = None
                     st.rerun()
+                    
             with col_qr:
                 try:
-                    qr_bytes = gerar_qrcode_pix(CHAVE_PIX, p["nome"])
-                    st.image(qr_bytes, width=180, caption="Escaneie para pagar")
+                    # 2. Agora usamos a variável 'valor' com segurança
+                    qr_bytes, payload = gerar_qrcode_pix(CHAVE_PIX, valor)
+                    st.image(qr_bytes, width=250, caption="Escaneie para pagar")
                 except Exception as e:
+                    payload = ""
                     st.warning(f"Erro ao gerar QR Code: {e}")
+
+            if payload:
+                st.markdown("**Pix Copia e Cola:**")
+                st.code(payload, language=None)
+
+        # Aciona rolagem JS até a âncora
+        if st.session_state.scroll_to_pix:
+            st.session_state.scroll_to_pix = False
+            st.components.v1.html("""
+                <script>
+                    setTimeout(function() {
+                        const doc = window.parent.document;
+                        const el = doc.getElementById('pagamento_pix');
+                        if (el) {
+                            el.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        } else {
+                            window.parent.scrollTo({
+                                top: doc.body.scrollHeight,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 200);
+                </script>
+            """, height=0)
+
+            # if payload:
+            #     st.markdown("**Pix Copia e Cola:**")
+            #     st.code(payload, language=None)
+            #     modelo_funcional = "00020126580014BR.GOV.BCB.PIX01369a006f14-6348-4996-97a2-9934e15786045204000053039865802BR5922Talles Silva Rodrigues6009SAO PAULO621405102kNBVR4rOd630441F2"
+            #     if payload == modelo_funcional:
+            #         st.success("✅ Payload IDÊNTICO ao modelo funcional — CRC: " + payload[-4:])
+            #     else:
+            #         st.error("❌ Payload diferente do modelo!")
+            #         for i, (a, b) in enumerate(zip(payload, modelo_funcional)):
+            #             if a != b:
+            #                 st.text(f"Diverge na posição {i}: gerado='{a}' vs modelo='{b}'")
+            #                 st.text(f"...gerado:  ...{payload[max(0,i-10):i+10]}...")
+            #                 st.text(f"...modelo:  ...{modelo_funcional[max(0,i-10):i+10]}...")
+            #                 break
+
+        if st.session_state.scroll_to_pix:
+            st.session_state.scroll_to_pix = False
+            st.components.v1.html("""
+                <script>
+                    setTimeout(function() {
+                        const doc = window.parent.document;
+                        const el = doc.getElementById('pagamento_pix');
+                        if (el) {
+                            el.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        } else {
+                            window.parent.scrollTo({
+                                top: doc.body.scrollHeight,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }, 200);
+                </script>
+            """, height=0)
 
     st.divider()
 
-    st.subheader("Registrar intenção de presente (opcional)")
-    st.write("Isto nos ajuda a evitar presentes repetidos.")
-    with st.form("gift_form", clear_on_submit=True):
-        nome_g     = st.text_input("Seu nome*", placeholder="Seu nome", max_chars=80)
-        presente_g = st.text_input("Presente que pretende dar*", placeholder="Ex.: Máquina de café", max_chars=120)
-        link_g     = st.text_input("Link (opcional)", placeholder="URL do produto")
-        msg_g      = st.text_area("Mensagem aos noivos (opcional)")
-        enviar_g   = st.form_submit_button("Registrar intenção")
-
-    if enviar_g:
-        if not nome_g.strip() or not presente_g.strip():
-            st.error("Informe pelo menos seu nome e o presente.")
-        else:
-            row = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "nome":      nome_g.strip(),
-                "presente":  presente_g.strip(),
-                "link":      link_g.strip(),
-                "mensagem":  msg_g.strip(),
-            }
-            try:
-                salvar_gift(row)
-                st.success("✅ Intenção registrada. Obrigado pelo carinho!")
-            except Exception as e:
-                st.error(f"Não foi possível salvar sua intenção de presente. Erro: {e}")
-
-    with st.expander("Ver intenções registradas"):
-        gifts_df = carregar_gifts()
-        if len(gifts_df) == 0:
-            st.info("Ainda não há intenções registradas.")
-        else:
-            gifts_df["quando"] = gifts_df["timestamp"].apply(human_time)
-            st.dataframe(gifts_df[["quando", "nome", "presente", "link", "mensagem"]], use_container_width=True)
 
 # ================================
-# Página: Endereço
+# Endereço
 # ================================
 elif pagina == " Endereço dos Eventos":
     st.header(" Endereço e Informações")
-
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Cerimônia")
@@ -527,11 +586,10 @@ elif pagina == " Endereço dos Eventos":
             f'<iframe src="{mapa_festa}" width="100%" height="350" style="border:0;" loading="lazy"></iframe>',
             height=370
         )
-
     st.info("💡 Dica: Use um aplicativo de navegação para ver rotas, horários e trânsito no dia.")
 
 # ================================
-# Página: Galeria de Fotos
+# Galeria de Fotos
 # ================================
 else:
     st.header(" Galeria de Fotos")
@@ -566,7 +624,6 @@ else:
                 st.rerun()
 
     st.divider()
-
     st.subheader("Galeria")
     fotos_df = carregar_fotos()
 
@@ -580,12 +637,10 @@ else:
         start     = (page - 1) * page_size
         end       = start + page_size
         show      = fotos_df.iloc[start:end]
-
         for _, row in show.iterrows():
             st.image(row["url"], use_container_width=True)
             st.caption(f"📷 {row['autor']} — {human_time(row['timestamp'])}")
             st.divider()
-
         st.write(f"Total de fotos: {total}")
 
 # -------------------------------
