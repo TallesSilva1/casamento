@@ -5,6 +5,7 @@ import urllib.parse
 import os
 from datetime import datetime
 from supabase import create_client, Client, ClientOptions
+from python_pix import Pix
 
 # -------------------------------
 # Configurações básicas
@@ -21,7 +22,7 @@ A presença de vocês já torna tudo ainda mais bonito, mal podemos esperar por 
 Com carinho,
 
 Ana Paula e Talles"""
-CHAVE_PIX = "casamento@exemplo.com"
+CHAVE_PIX = "anaetalles.15.08@hotmail.com"
 MENSAGEM_PIX = "Se preferir presente em Pix, use a chave acima. Obrigado pelo carinho!"
 ENDERECO_CERIMONIA = "Paróquia São Cristovão, R. Padre Américo Ceppi, 190, Centro, Uberlândia"
 HORARIO_CERIMONIA = "16:00"
@@ -125,36 +126,98 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Dancing+Script:wght@600&display=swap');
 
-/* Todos os textos com contorno dourado */
-h1, h2, h3, h4, h5, h6,
-p, span, label, li, div,
-.stMarkdown, .stText,
-[data-testid="stMarkdownContainer"] * {
-    -webkit-text-stroke: 2px #daa520   ;
-    paint-order: stroke fill;
-}
-
 /* Título principal mais destacado */
 h1 {
-    -webkit-text-stroke: 1.3px #daa520  ;
-    color: #daa520  ;
+    -webkit-text-stroke: 0px #daa520   ;
+    paint-order: stroke fill;
+    color: #050505  ;
     font-family: 'Dancing Script', cursive !important;
 }
 
 /* Subtítulos */
 h2, h3 {
-    -webkit-text-stroke: 1px #daa520  ;
-    color: #daa520  ;
+    -webkit-text-stroke: 0px #daa520   ;
+    paint-order: stroke fill;
+    color: #050505  ;
 }
-h1   { font-size: 3rem !important; }   /* título principal */
-h2   { font-size: 3rem !important; }     /* cabeçalhos de seção */
-h3   { font-size: 2rem !important; }   /* subcabeçalhos */
-li { font-size: 3rem !important; }  /* corpo do texto */
-span { font-size: 3rem !important; } /* corpo do texto */
-p { font-size: 1rem !important; color: #F0F0F0 }  /* corpo do texto */
+            
+span {
+    -webkit-text-stroke: 0px #daa520   ;
+    paint-order: stroke fill;
+    color: #050505  ;
+}
+            
+            /* Subtítulos */
+p, li, label {
+    -webkit-text-stroke: 0px #daa520   ;
+    paint-order: stroke fill;
+    color: #050505  ;
+}
+            
+h1   { font-size: 2rem !important; }   /* título principal */
+h2   { font-size: 2rem !important; }     /* cabeçalhos de seção */
+h3   { font-size: 1rem !important; }   /* subcabeçalhos */
+li { font-size: 1rem !important; }  /* corpo do texto */
+p { font-size: 1rem !important; }  /* corpo do texto */
+span { font-size: 3rem !important;}
 
 label { font-size: 1rem !important; }  /* formulários */
 </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    div[data-testid="stForm"] div.stFormSubmitButton > button {
+        background-color: #daa520;
+        color: #050505;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+    }
+    div[data-testid="stForm"] div.stFormSubmitButton > button:hover {
+        background-color: #c49018;
+        color: #050505;
+        border: none;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    div[data-testid="stFileUploaderDropzoneInstructions"] {
+        display: none;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    button[data-testid="stBaseButton-secondary"] {
+        background-color: #daa520 !important;
+        color: #050505 !important;
+        border: none !important;
+    }
+    
+    button[data-testid="stBaseButton-secondary"]:hover {
+        background-color: #c49018 !important;
+        color: #050505 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    button[data-testid="stBaseLinkButton-secondary"] {
+        background-color: #daa520 !important;
+        color: #050505 !important;
+        border: none !important;
+    }
+    
+    button[data-testid="stBaseLinkButton-secondary"]:hover {
+        background-color: #c49018 !important;
+        color: #050505 !important;
+    }
+    </style>
 """, unsafe_allow_html=True)
 
 # -------------------------------
@@ -234,7 +297,7 @@ if pagina == " Pagina Principal":
 # ================================
 elif pagina == " Confirmação de Presença":
 
-    st.header(" Confirmação de Presença")
+    st.subheader(" Confirmação de Presença")
     st.write("Por favor, preencha suas informações para confirmar ou justificar sua ausência.")
 
     if "acomp_count" not in st.session_state:
@@ -248,10 +311,10 @@ elif pagina == " Confirmação de Presença":
 
     
 
-    with st.form("rsvp_form", clear_on_submit=True):
-        nome     = st.text_input("Nome completo*",  placeholder="Seu nome",        max_chars=80)
-        email    = st.text_input("E-mail",           placeholder="seu@email.com",   max_chars=120)
-        telefone = st.text_input("Telefone",         placeholder="(xx) xxxxx-xxxx", max_chars=20)
+    with st.form("rsvp_form", clear_on_submit=True, enter_to_submit=False):
+        nome     = st.text_input("Nome completo*",  placeholder="Seu nome")
+        email    = st.text_input("E-mail",           placeholder="seu@email.com")
+        telefone = st.text_input("Telefone",         placeholder="(xx) xxxxx-xxxx")
         presença = st.radio(
             "Você vai ao casamento?",
             ["Sim, confirmo presença", "Infelizmente não poderei ir"]
@@ -265,16 +328,16 @@ elif pagina == " Confirmação de Presença":
             st.markdown("**Dados dos acompanhantes**")
         for i in range(st.session_state.acomp_count):
             c1, c2 = st.columns([3, 2])
-            ac_nome = c1.text_input(f"Nome do acompanhante {i+1}", key=f"acomp_nome_{i}", max_chars=80)
-            ac_obs  = c2.text_input(f"Obs./Parentesco {i+1} (opcional)", key=f"acomp_obs_{i}", max_chars=80)
+            ac_nome = c1.text_input(f"Nome do acompanhante {i+1}", key=f"acomp_nome_{i}")
+            ac_obs  = c2.text_input(f"Obs./Parentesco {i+1} (opcional)", key=f"acomp_obs_{i}")
             acompanhantes.append({"nome": ac_nome.strip(), "obs": ac_obs.strip()})
 
-        enviar = st.form_submit_button("Enviar confirmação")
+        enviar = st.form_submit_button("Enviar confirmação", type="primary")
 
     st.subheader("Acompanhantes")
     col_add, col_remove = st.columns(2)
     add_clicked    = col_add.button("Adicionar acompanhante +", type="primary")
-    remove_clicked = col_remove.button("Remover último -")
+    remove_clicked = col_remove.button("Remover último -", type="primary")
 
     if add_clicked:
         st.session_state.acomp_count += 1
@@ -327,36 +390,53 @@ elif pagina == " Confirmação de Presença":
             except Exception as e:
                 st.error(f"Não foi possível salvar sua confirmação. Erro: {e}")
 
+
 # ================================
 # Página: Lista de Presentes
 # ================================
 elif pagina == " Lista de Presentes":
-    st.header(" Lista de Presentes e Pix")
+    st.header("Lista de Presentes e Pix")
     st.write("Fique à vontade para escolher um presente. Se preferir, pode usar nossa chave Pix.")
-
+ 
     st.subheader("Pix")
     st.write(f"Chave Pix: {CHAVE_PIX}")
     st.write(MENSAGEM_PIX)
-
+ 
     payload_pix = f"PIX:{CHAVE_PIX}"
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={urllib.parse.quote(payload_pix)}"
     st.image(qr_url, caption="QR Code Pix", width=200)
-
+ 
     st.divider()
-
+ 
     st.subheader("Sugestões de Presentes")
-    sugestoes = [
-        {"nome": "Jogo de cama casal",  "link": "https://exemplo.com/jogo-de-cama"},
-        {"nome": "Conjunto de panelas", "link": "https://exemplo.com/panelas"},
-        {"nome": "Liquidificador",      "link": "https://exemplo.com/liquidificador"},
-        {"nome": "Máquina de café",     "link": "https://exemplo.com/cafeteira"},
-        {"nome": "Vale viagem",         "link": "https://exemplo.com/vale-viagem"},
+ 
+    # ── Para adicionar ou editar presentes, edite apenas esta lista ────────
+    presentes = [
+        {"nome": "Par de cobertas para a noiva (Ela sempre acorda com todas as cobertas)",  "preco": "R$ 280",  "emoji": "🛏️", "img": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80", "link": "https://exemplo.com/jogo-de-cama"},
+        {"nome": "Panelas Novas para a Noiva cozinhar e o Noivo Lavar", "preco": "R$ 450",  "emoji": "🍳", "img": "https://images.unsplash.com/photo-1584990347449-39a3533de02d?w=400&q=80", "link": "https://exemplo.com/panelas"},
+        {"nome": "Lava Louça para lavar a louça nova da opção anterior",      "preco": "R$ 180",  "emoji": "🥤", "img": "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=400&q=80", "link": "https://exemplo.com/liquidificador"},
+        {"nome": "Máquina de café para acordar a Noiva cedinho",     "preco": "R$ 650",  "emoji": "☕", "img": "https://images.unsplash.com/photo-1510017803434-a899398421b3?w=400&q=80", "link": "https://exemplo.com/cafeteira"},
+        {"nome": "Jogo de toalhas",     "preco": "R$ 190",  "emoji": "🧺", "img": "https://images.unsplash.com/photo-1600369671854-5b73de9cebe3?w=400&q=80", "link": "https://exemplo.com/toalhas"},
+        {"nome": "Vale viagem",         "preco": "R$ livre", "emoji": "✈️", "img": "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=400&q=80", "link": "https://exemplo.com/vale-viagem"},
+        {"nome": "Aparelho de jantar",  "preco": "R$ 320",  "emoji": "🍽️", "img": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80", "link": "https://exemplo.com/jantar"},
+        {"nome": "Aspirador robô",      "preco": "R$ 900",  "emoji": "🤖", "img": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80", "link": "https://exemplo.com/aspirador"},
     ]
-    for s in sugestoes:
-        st.write(f"- {s['nome']} — [Link]({s['link']})")
-
+    # ──────────────────────────────────────────────────────────────────────
+ 
+    COLUNAS = 3
+    for i in range(0, len(presentes), COLUNAS):
+        cols = st.columns(COLUNAS)
+        for col, presente in zip(cols, presentes[i:i + COLUNAS]):
+            with col:
+                if presente["img"]:
+                    st.image(presente["img"], use_container_width=True)
+                else:
+                    st.markdown(f"<div style='font-size:52px;text-align:center'>{presente['emoji']}</div>", unsafe_allow_html=True)
+                st.markdown(f"**{presente['nome']}**")
+                st.caption(presente["preco"])
+                st.link_button("Ver na loja 🔗", presente["link"], use_container_width=True, type="primary")
     st.divider()
-
+ 
     st.subheader("Registrar intenção de presente (opcional)")
     st.write("Isto nos ajuda a evitar presentes repetidos.")
     with st.form("gift_form", clear_on_submit=True):
@@ -365,7 +445,7 @@ elif pagina == " Lista de Presentes":
         link_g     = st.text_input("Link (opcional)", placeholder="URL do produto")
         msg_g      = st.text_area("Mensagem aos noivos (opcional)")
         enviar_g   = st.form_submit_button("Registrar intenção")
-
+ 
     if enviar_g:
         if not nome_g.strip() or not presente_g.strip():
             st.error("Informe pelo menos seu nome e o presente.")
@@ -382,7 +462,7 @@ elif pagina == " Lista de Presentes":
                 st.success("✅ Intenção registrada. Obrigado pelo carinho!")
             except Exception as e:
                 st.error(f"Não foi possível salvar sua intenção de presente. Erro: {e}")
-
+ 
     with st.expander("Ver intenções registradas"):
         gifts_df = carregar_gifts()
         if len(gifts_df) == 0:
@@ -390,7 +470,7 @@ elif pagina == " Lista de Presentes":
         else:
             gifts_df["quando"] = gifts_df["timestamp"].apply(human_time)
             st.dataframe(gifts_df[["quando", "nome", "presente", "link", "mensagem"]], use_container_width=True)
-
+ 
 # ================================
 # Página: Endereço
 # ================================
@@ -426,10 +506,10 @@ else:
     uploader   = st.file_uploader(
         "Selecione suas imagens (PNG, JPG, JPEG)",
         type=["png", "jpg", "jpeg"],
-        accept_multiple_files=True,
+        accept_multiple_files=True
     )
-    nome_autor = st.text_input("Seu nome (para marcar as fotos)*", max_chars=60)
-    btn_upload = st.button("Enviar fotos")
+    nome_autor = st.text_input("Seu nome (para marcar as fotos)*")
+    btn_upload = st.button("Enviar fotos", type="primary")
 
     if btn_upload:
         if not nome_autor.strip():
