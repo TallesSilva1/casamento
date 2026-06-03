@@ -453,8 +453,6 @@ elif pagina == " Lista de Presentes":
          "img": "https://images.unsplash.com/photo-1617347454431-f49d7ff5c3b1?w=600&h=400&fit=crop"},
         {"nome": "Vale-jantar romântico na lua de mel", "preco": "R$ 350", "emoji": "🥂",
          "img": "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=400&fit=crop"},
-        {"nome": "Ajuda para o noivo montar o setup de trabalho", "preco": "R$ 450", "emoji": "💻",
-         "img": "https://images.unsplash.com/photo-1611096002616-763f16ef15f3?w=600&h=400&fit=crop"},
         {"nome": "Patrocínio oficial das nossas pequenas aventuras", "preco": "R$ 400", "emoji": "🏕️",
          "img": "https://images.unsplash.com/photo-1582487811662-bf4b4aabc22c?w=600&h=400&fit=crop"},
         {"nome": "Fundo para compra da chácara no meio do mato que o noivo sonha", "preco": "R$ 320", "emoji": "🏡",
