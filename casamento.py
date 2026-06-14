@@ -597,9 +597,6 @@ elif pagina == " Lista de Presentes":
                     payload = ""
                     st.warning(f"Erro ao gerar QR Code: {e}")
 
-            if payload:
-                st.markdown("**Pix Copia e Cola:**")
-                st.code(payload, language=None)
 
         # Aciona rolagem JS até a âncora
         if st.session_state.scroll_to_pix:
