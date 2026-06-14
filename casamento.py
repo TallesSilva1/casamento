@@ -8,6 +8,7 @@ import binascii
 from datetime import datetime
 from supabase import create_client, Client, ClientOptions
 import qrcode
+import time
 
 # -------------------------------
 # Configurações básicas
@@ -251,7 +252,16 @@ st.markdown("""
     div[data-testid="stFileUploaderDropzoneInstructions"] { display: none; }
     </style>
 """, unsafe_allow_html=True)
+# Reseta o scroll sempre que solicitado
 
+
+if st.session_state.get("scroll_top"):
+    st.session_state["scroll_top"] = False
+    st.html(f"""
+    <script data-t="{time.time()}">
+      window.parent.document.querySelector('section[data-testid="stMain"] > div').scrollTo({{top: 0, behavior: 'instant'}});
+    </script>
+    """)
 # -------------------------------
 # Cabeçalho
 # -------------------------------
@@ -261,17 +271,12 @@ st.title(f"{NOME_DOS_NOIVOS}")
 # Sidebar
 # -------------------------------
 st.sidebar.title("Menu")
-pagina = st.sidebar.radio(
-    "",
-    (
-        " Pagina Principal",
-        " Confirmação de Presença",
-        " Lista de Presentes",
-        " Endereço dos Eventos",
-        " Galeria de Fotos",
-    ),
-    index=0,
-)
+
+# Captura redirecionamento dos botões do rodapé
+pagina_inicial = st.query_params.get("pagina", " Pagina Principal")
+
+# Atualiza a URL quando a página muda via sidebar
+st.query_params["pagina"] = pagina
 
 with st.sidebar:
     st.markdown("---")
@@ -441,7 +446,7 @@ elif pagina == " Lista de Presentes":
          "img": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&h=400&fit=crop"},
         {"nome": "Vale-date romântico surpresa", "preco": "R$ 290", "emoji": "🌹",
          "img": "https://images.unsplash.com/photo-1529543544282-ea669407fca3?w=600&h=400&fit=crop"},
-        {"nome": "Vale-paciência para as loucuras do noivo", "preco": "R$ 110", "emoji": "🕺",
+        {"nome": "Apoio emocional para noiva suportar as loucuras do noivo", "preco": "R$ 110", "emoji": "🕺",
          "img": "https://images.unsplash.com/photo-1547619292-8816ee7cdd50?w=600&h=400&fit=crop"},
         {"nome": "Fundo oficial para o noivo correr na Patagonia Run", "preco": "R$ 140", "emoji": "🏃‍♂️",
          "img": "https://images.unsplash.com/photo-1611674156713-40c5e8b07d97?w=600&h=400&fit=crop"},
@@ -528,8 +533,6 @@ elif pagina == " Lista de Presentes":
                     st.session_state.presente_selecionado = presente
                     st.session_state.scroll_to_pix = True
                     st.rerun()
-    st.divider()
-    st.markdown("<div id='pagamento_pix'></div>", unsafe_allow_html=True)
 
     # ── Área de pagamento Pix ──
     st.divider()
@@ -658,19 +661,23 @@ else:
     fotos_df = carregar_fotos()
 
     if len(fotos_df) == 0:
-        st.info("Ainda não há fotos. Seja o primeiro a compartilhar!")
+            st.info("Ainda não há fotos. Seja o primeiro a compartilhar!")
     else:
-        page_size = st.slider("Fotos por página", 4, 20, 8, 2)
+        page_size = st.slider("Fotos por página", 4, 100, 8, 4)
         total     = len(fotos_df)
         max_page  = max(1, (total - 1) // page_size + 1)
         page      = st.number_input("Página", min_value=1, max_value=max_page, value=1)
         start     = (page - 1) * page_size
-        end       = start + page_size
-        show      = fotos_df.iloc[start:end]
-        for _, row in show.iterrows():
-            st.image(row["url"], use_container_width=True)
-            st.caption(f"📷 {row['autor']} — {human_time(row['timestamp'])}")
-            st.divider()
+        show      = fotos_df.iloc[start:start + page_size]
+
+        COLUNAS = 4
+        for i in range(0, len(show), COLUNAS):
+            cols = st.columns(COLUNAS)
+            for col, (_, row) in zip(cols, show.iloc[i:i + COLUNAS].iterrows()):
+                with col:
+                    st.image(row["url"], use_container_width=True)
+                    st.caption(f"📷 {row['autor']}\n{human_time(row['timestamp'])}")
+
         st.write(f"Total de fotos: {total}")
 
 # -------------------------------
@@ -678,3 +685,27 @@ else:
 # -------------------------------
 st.divider()
 st.write("Qualquer dúvida, entre em contato com os noivos. Obrigado por participar desse momento especial! 💍")
+
+
+st.markdown("#### Navegue pelo site")
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.button("💌 Confirmação\nde Presença", use_container_width=True):
+        st.session_state["pagina_redirect"] = " Confirmação de Presença"
+        st.rerun()
+
+with col2:
+    if st.button("🎁 Lista de\nPresentes", use_container_width=True):
+        st.session_state["pagina_redirect"] = " Lista de Presentes"
+        st.rerun()
+
+with col3:
+    if st.button("📍 Endereço\ndos Eventos", use_container_width=True):
+        st.session_state["pagina_redirect"] = " Endereço dos Eventos"
+        st.rerun()
+
+with col4:
+    if st.button("📸 Galeria\nde Fotos", use_container_width=True):     
+        st.session_state["pagina_redirect"] = " Galeria de Fotos"
+        st.rerun()
