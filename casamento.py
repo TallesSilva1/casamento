@@ -275,8 +275,37 @@ st.sidebar.title("Menu")
 # Captura redirecionamento dos botões do rodapé
 pagina_inicial = st.query_params.get("pagina", " Pagina Principal")
 
+# No topo, lê a página da URL
+params = st.query_params
+pagina_inicial = params.get("pagina", " Pagina Principal")
+
+pagina = st.sidebar.radio(
+    "",
+    (
+        " Pagina Principal",
+        " Confirmação de Presença",
+        " Lista de Presentes",
+        " Endereço dos Eventos",
+        " Galeria de Fotos",
+    ),
+    index=[
+        " Pagina Principal",
+        " Confirmação de Presença",
+        " Lista de Presentes",
+        " Endereço dos Eventos",
+        " Galeria de Fotos",
+    ].index(pagina_inicial) if pagina_inicial in [
+        " Pagina Principal",
+        " Confirmação de Presença",
+        " Lista de Presentes",
+        " Endereço dos Eventos",
+        " Galeria de Fotos",
+    ] else 0,
+)
+
 # Atualiza a URL quando a página muda via sidebar
 st.query_params["pagina"] = pagina
+
 
 with st.sidebar:
     st.markdown("---")
@@ -690,22 +719,23 @@ st.write("Qualquer dúvida, entre em contato com os noivos. Obrigado por partici
 st.markdown("#### Navegue pelo site")
 col1, col2, col3, col4 = st.columns(4)
 
+
 with col1:
     if st.button("💌 Confirmação\nde Presença", use_container_width=True):
-        st.session_state["pagina_redirect"] = " Confirmação de Presença"
+        st.query_params["pagina"] = " Confirmação de Presença"
         st.rerun()
 
 with col2:
     if st.button("🎁 Lista de\nPresentes", use_container_width=True):
-        st.session_state["pagina_redirect"] = " Lista de Presentes"
+        st.query_params["pagina"] = " Lista de Presentes"
         st.rerun()
 
 with col3:
     if st.button("📍 Endereço\ndos Eventos", use_container_width=True):
-        st.session_state["pagina_redirect"] = " Endereço dos Eventos"
+        st.query_params["pagina"] = " Endereço dos Eventos"
         st.rerun()
 
 with col4:
     if st.button("📸 Galeria\nde Fotos", use_container_width=True):     
-        st.session_state["pagina_redirect"] = " Galeria de Fotos"
+        st.query_params["pagina"] = " Galeria de Fotos"
         st.rerun()
